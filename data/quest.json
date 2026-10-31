@@ -27,16 +27,10 @@
   "%%TCcN-P----%%",
   "%%TCc--%%%%%%%",
   "%%%%%%%%%%%%%%",
-  "%%%%%%%%%%%%%%",
-  "##############",
-  "#-1----0---5-#",
-  "#-2----9---6-#",
-  "#-3--------7-#",
-  "#-4--------8-#",
-  "##############"
+  "%%%%%%%%%%%%%%"
  ],
  "width": 14,
- "height": 34,
+ "height": 28,
  "start_pos_toshik": [
   2,
   8
@@ -3644,117 +3638,68 @@
   "Akusheva1": {
    "name": "Akusheva1",
    "story": "nastya",
-   "message": "К сожалению, последующая часть квеста была утеряна во времени. Тут должен был быть Есин на космическом корабле с шуточками про дальнобойщиков. Он привёз вас в ЗАГС. Туда мы и отправимся сейчас",
+   "message": "_Акушева_: К сожалению, последующая часть квеста была утеряна во времени. Тут должен был быть Есин на космическом корабле с шуточками про дальнобойщиков. Он привёз вас в ЗАГС. Туда мы и отправимся сейчас",
    "display_map": true,
    "map_icon": "o",
    "answers": [
     {
      "message": "Ну блииин :(",
      "move_to_dialog": "MapNastya",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "down",
+         "of": {
+          "icon": "Z"
+         }
+        },
+        "char": "0"
+       },
+       {
+        "op": "replace",
+        "icon": "Z",
+        "char": "2"
+       },
+       {
+        "op": "replace",
+        "icon": "J",
+        "char": "8"
+       },
+       {
+        "op": "replace",
+        "icon": "k",
+        "char": "3"
+       },
+       {
+        "op": "replace",
+        "icon": "S",
+        "char": "9"
+       },
+       {
+        "op": "replace",
+        "icon": "K",
+        "char": "7"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "up",
+         "of": {
+          "initial_icon": "M"
+         }
+        },
+        "char": "1"
+       }
+      ]
+     },
      "move_to_pos": {
-      "move": "down",
+      "move": "right",
       "of": {
-       "icon": "9"
+       "icon": "1"
       }
      }
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats1": {
-   "name": "Congrats1",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "1",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats2": {
-   "name": "Congrats2",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "2",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats3": {
-   "name": "Congrats3",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "3",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats4": {
-   "name": "Congrats4",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "4",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats5": {
-   "name": "Congrats5",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "5",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats6": {
-   "name": "Congrats6",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "6",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "Congrats7": {
-   "name": "Congrats7",
-   "story": "nastya",
-   "message": "Поздравляю!",
-   "display_map": true,
-   "map_icon": "7",
-   "answers": [
-    {
-     "message": "Спасибочки",
-     "move_to_dialog": "MapNastya"
     }
    ],
    "player_icon": "N"
@@ -3762,7 +3707,7 @@
   "CongratsYakov": {
    "name": "CongratsYakov",
    "story": "nastya",
-   "message": "Пуоздрувналкц!",
+   "message": "_Яков_: Пуоздрувналкц!",
    "display_map": true,
    "map_icon": "8",
    "answers": [
@@ -3776,9 +3721,9 @@
   "FinalTolik": {
    "name": "FinalTolik",
    "story": "nastya",
-   "message": "Объявляю Вас Мужем и Женой. Конец.",
+   "message": "_Работница ЗАГСа_: Объявляю Вас Мужем и Женой. Конец.",
    "display_map": true,
-   "map_icon": "9",
+   "map_icon": "0",
    "answers": [
     {
      "message": "Конец",
@@ -3790,12 +3735,68 @@
   "FinalWorker": {
    "name": "FinalWorker",
    "story": "nastya",
-   "message": "Объявляю Вас Мужем и Женой. Конец.",
+   "message": "_Работница ЗАГСа_: Объявляю Вас Мужем и Женой. Конец.",
    "display_map": true,
-   "map_icon": "0",
+   "map_icon": "2",
    "answers": [
     {
      "message": "Конец",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsToshik": {
+   "name": "CongratsToshik",
+   "story": "nastya",
+   "message": "_Тошик_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "1",
+   "answers": [
+    {
+     "message": "Спасибочки",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsKolyan": {
+   "name": "CongratsKolyan",
+   "story": "nastya",
+   "message": "_Колян_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "3",
+   "answers": [
+    {
+     "message": "Спасибочки",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsSokrat": {
+   "name": "CongratsSokrat",
+   "story": "nastya",
+   "message": "_Сократ_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "9",
+   "answers": [
+    {
+     "message": "Спасибочки",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsSedosh": {
+   "name": "CongratsSedosh",
+   "story": "nastya",
+   "message": "_Седошенко_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "7",
+   "answers": [
+    {
+     "message": "Спасибочки",
      "move_to_dialog": "MapNastya"
     }
    ],
@@ -3899,15 +3900,12 @@
   "FoundWallNastya",
   "FoundRoad",
   "Akusheva1",
-  "Congrats1",
-  "Congrats2",
-  "Congrats3",
-  "Congrats4",
-  "Congrats5",
-  "Congrats6",
-  "Congrats7",
   "CongratsYakov",
   "FinalTolik",
-  "FinalWorker"
+  "FinalWorker",
+  "CongratsToshik",
+  "CongratsKolyan",
+  "CongratsSokrat",
+  "CongratsSedosh"
  ]
 }
