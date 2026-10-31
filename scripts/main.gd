@@ -53,6 +53,8 @@ var photo_rect: TextureRect
 var showing_photo := false
 
 var animated_tiles: Array = []
+# Characters do not cycle frames: they squash (see _process).
+var squash_sprites: Array = []
 var small_sprites: Array = []
 var scaled_sprites: Array = []
 var anim_time := 0.0
@@ -70,7 +72,6 @@ const MIN_CELL := 40
 const SCENE_BG := Color(0.91, 0.89, 0.83)
 const ROAD_COLOR := Color(0.78, 0.73, 0.62)
 const DOOR_COLOR := Color(0.42, 0.29, 0.17)
-const DOOR_BORDER := Color(0.26, 0.17, 0.09)
 const BRICK_COLOR := Color(0.62, 0.36, 0.24)
 # Wedding-invitation palette (user-approved restyle): deep plum-brown
 # sidebar, ivory parchment cards, gold trim, dark-brown card text.
@@ -137,6 +138,14 @@ func _process(delta: float) -> void:
 			tile["elapsed"] = 0.0
 			tile["idx"] = (tile["idx"] + 1) % tile["frames"].size()
 			tile["node"].texture = tile["frames"][tile["idx"]]
+	# Characters breathe instead of hopping: a gentle vertical squash
+	# (head dips down, feet planted via the bottom-center pivot), so
+	# the head never rises toward the cell edge the way the 12 px
+	# frame difference used to push it.
+	for entry in squash_sprites:
+		entry["phase"] += delta
+		var sy: float = 1.0 - 0.05 * (0.5 + 0.5 * sin(entry["phase"] * 4.0))
+		entry["node"].scale = Vector2(1.0, sy)
 
 
 # --- UI construction --------------------------------------------------------
@@ -365,6 +374,11 @@ func _build_ui() -> void:
 	dialog_card = PanelContainer.new()
 	dialog_card.add_theme_stylebox_override("panel", _parchment_style())
 	dialog_card.size_flags_horizontal = SIZE_EXPAND_FILL
+	# The parchment 9-slice needs 48 px top + 48 px bottom to draw
+	# undistorted; a one-line dialog is only ~63 px tall, so without
+	# a floor the gold frame gets vertically squashed and looks
+	# crooked. 120 px leaves a small center strip.
+	dialog_card.custom_minimum_size = Vector2(0, 120)
 	sidebar_box.add_child(dialog_card)
 	var dialog_margin := MarginContainer.new()
 	dialog_margin.add_theme_constant_override("margin_left", 16)
@@ -764,6 +778,8 @@ func _apply_cell_size() -> void:
 	for entry in scaled_sprites:
 		var s: float = entry["scale"]
 		entry["node"].custom_minimum_size = Vector2(cell * s, cell * s)
+		# Squash pivot at the feet: the head dips down, never up.
+		entry["node"].pivot_offset = Vector2(cell * s / 2, cell * s)
 	if fog_overlay == null:
 		return
 	# Fog overlay: one dark column per run, at most 2 cells tall and
@@ -837,8 +853,11 @@ func _cell_style(emoji: String, is_player: bool, up_same: bool, down_same: bool,
 	if emoji == "🕳":
 		return _merged_style(ROAD_COLOR, up_same, down_same, left_same, right_same)
 	if emoji == "🚪":
-		# Flat frame colour behind the door texture child.
-		return _panel_style(DOOR_BORDER, Color(0, 0, 0, 0), 0)
+		# Transparent: the narrow door's sides must show the scene
+		# floor, not a brown frame — the brown side strips read as a
+		# botched door. (The brick underlay covers the cell anyway
+		# for horizontal-wall doors.)
+		return _panel_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0)
 	if emoji == "✖️":
 		# Square, full-cell fog: no rounding, so a run of fog cells
 		# reads as one solid darkness running down to the scene's
@@ -881,6 +900,7 @@ func _refresh() -> void:
 	animated_tiles = []
 	small_sprites = []
 	scaled_sprites = []
+	squash_sprites = []
 	var fog_cells: Array = []
 	var tiles: Array = engine.visible_tiles()
 	scene_cols = tiles[0].size()
@@ -957,8 +977,9 @@ func _refresh() -> void:
 					hwrap.add_child(sprite)
 					cell.add_child(hwrap)
 					scaled_sprites.append({"node": sprite, "scale": hs})
-					if frames.size() > 1:
-						animated_tiles.append({"node": sprite, "frames": frames, "interval": 0.35, "elapsed": 0.0, "idx": 0})
+					# Squash, not frame cycling: the frames differ
+					# by 12 px and that bobbed the figure upward.
+					squash_sprites.append({"node": sprite, "phase": squash_sprites.size() * 0.9})
 				else:
 					_add_emoji_cell(cell, tiles[y][x])
 			else:
@@ -995,9 +1016,14 @@ func _refresh() -> void:
 							swrap.add_child(sprite)
 							cell.add_child(swrap)
 							scaled_sprites.append({"node": sprite, "scale": s})
-						if frames.size() > 1:
-							var interval := 0.18 if sprite_name == "fire" else 0.35
-							animated_tiles.append({"node": sprite, "frames": frames, "interval": interval, "elapsed": 0.0, "idx": 0})
+						# Fire keeps flickering through its frames;
+						# characters squash instead of hopping.
+						# (Items stay static.)
+						if sprite_name == "fire":
+							if frames.size() > 1:
+								animated_tiles.append({"node": sprite, "frames": frames, "interval": 0.18, "elapsed": 0.0, "idx": 0})
+						elif sprite_name not in ITEM_SPRITES:
+							squash_sprites.append({"node": sprite, "phase": squash_sprites.size() * 0.9})
 					else:
 						_add_emoji_cell(cell, tiles[y][x])
 				else:
@@ -1037,6 +1063,7 @@ func _refresh() -> void:
 		animated_tiles = []
 		small_sprites = []
 		scaled_sprites = []
+		squash_sprites = []
 		showing_photo = true
 		photo_rect.texture = load("res://assets/" + dlg["photo"]) as Texture2D
 		photo_rect.custom_minimum_size = Vector2(max(scene_panel.size.x - 8, 0), max(scene_panel.size.y - 8, 0))
