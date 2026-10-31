@@ -40,6 +40,7 @@ var fog_overlay: Control
 var fog_runs: Array = []
 var sidebar: PanelContainer
 var dialog_card: PanelContainer
+var dialog_margin: MarginContainer
 var dialog_frame_layer: Control
 var hero_portrait: TextureRect
 var dialog_label: RichTextLabel
@@ -49,6 +50,7 @@ var submit_button: Button
 var feedback_label: Label
 var answers_box: VBoxContainer
 var dpad_block: VBoxContainer
+var inv_row: HBoxContainer
 var dpad_pad: GridContainer
 var dpad_buttons := {}
 var photo_rect: TextureRect
@@ -196,10 +198,27 @@ func _style_button(button: Button) -> void:
 	button.add_theme_color_override("font_hover_color", IVORY)
 	button.add_theme_color_override("font_pressed_color", IVORY)
 	button.add_theme_color_override("font_disabled_color", Color(IVORY.r, IVORY.g, IVORY.b, 0.5))
-	# Tappable targets: every button is at least 56 px tall, so answer
-	# buttons (and the D-pad arrows) are comfortable to press on a phone.
+	# Tappable targets: every button is at least _button_min_height()
+	# tall (64 on narrow windows, 56 on desktops), so answer buttons
+	# (and the D-pad arrows) are comfortable to press on a phone.
 	var ms := button.custom_minimum_size
-	ms.y = max(ms.y, 56)
+	ms.y = max(ms.y, _button_min_height())
+	button.custom_minimum_size = ms
+
+
+func _button_min_height() -> int:
+	# Narrow windows (phones in portrait) get taller tap targets;
+	# desktops keep the 56 px standard.
+	if get_viewport_rect().size.x < NARROW_WIDTH:
+		return 64
+	return 56
+
+
+func _set_button_height(button: Button, h: int) -> void:
+	if button == null:
+		return
+	var ms := button.custom_minimum_size
+	ms.y = h
 	button.custom_minimum_size = ms
 
 
@@ -465,13 +484,13 @@ func _build_ui() -> void:
 	dialog_card.custom_minimum_size = Vector2(0, 120)
 	sidebar_box.add_child(dialog_card)
 	_build_dialog_frame(dialog_card)
-	var dialog_margin := MarginContainer.new()
+	dialog_margin = MarginContainer.new()
 	# The flat parchment background carries no content margins (the
 	# old 9-slice contributed 20 px), so the margin alone must inset
 	# the text: 36/34 px restores the old text position and clears
 	# the frame's inner line (16-18 px) with room to spare.
-	dialog_margin.add_theme_constant_override("margin_left", 36)
-	dialog_margin.add_theme_constant_override("margin_right", 36)
+	dialog_margin.add_theme_constant_override("margin_left", 56)
+	dialog_margin.add_theme_constant_override("margin_right", 56)
 	dialog_margin.add_theme_constant_override("margin_top", 34)
 	dialog_margin.add_theme_constant_override("margin_bottom", 34)
 	dialog_card.add_child(dialog_margin)
@@ -539,7 +558,7 @@ func _build_ui() -> void:
 	dpad_block.add_theme_constant_override("separation", 8)
 	dpad_block.size_flags_horizontal = SIZE_EXPAND_FILL
 	sidebar_box.add_child(dpad_block)
-	var inv_row := HBoxContainer.new()
+	inv_row = HBoxContainer.new()
 	inv_row.add_theme_constant_override("separation", 8)
 	dpad_block.add_child(inv_row)
 	for code in ["i", "j"]:
@@ -756,10 +775,12 @@ func _font_scale() -> float:
 	var w := get_viewport_rect().size.x
 	if w <= 0:
 		return 1.0
-	# Phones (1080 device px) sit at the 1.15 floor, which reads fine
-	# there; wide desktops used to reach 1.6 (dialog 40 px at 1920),
-	# which reads too big, so the cap is 1.2 (dialog 30 px at 1920)
-	# and the ramp is gentler.
+	# Narrow windows (phones in portrait): a higher scale so text
+	# reads comfortably on a small screen. Wide windows use the
+	# formula below unchanged: the 1.15 floor, the 1.2 cap (dialog
+	# 30 px at 1920; 1.6 used to read too big).
+	if w < NARROW_WIDTH:
+		return 1.3
 	return clamp(w / 1400.0, 1.15, 1.2)
 
 
@@ -783,6 +804,21 @@ func _refresh_fonts() -> void:
 	for code in ["i", "j"]:
 		if code in dpad_buttons:
 			(dpad_buttons[code] as Button).add_theme_font_size_override("font_size", _scaled(20))
+	# Button tap targets follow the viewport: taller on narrow
+	# windows (phones), standard on desktops. Recomputed here so a
+	# rotation or window resize updates buttons built earlier.
+	var bh := _button_min_height()
+	_set_button_height(reset_toshik_button, bh)
+	_set_button_height(reset_nastya_button, bh)
+	_set_button_height(submit_button, bh)
+	for code in dpad_buttons:
+		_set_button_height(dpad_buttons[code] as Button, bh)
+	if answers_box != null:
+		for child in answers_box.get_children():
+			_set_button_height(child as Button, bh)
+	if inv_row != null:
+		for child in inv_row.get_children():
+			_set_button_height(child as Button, bh)
 
 
 func _notification(what: int) -> void:
