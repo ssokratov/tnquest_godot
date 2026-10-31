@@ -40,6 +40,7 @@ var fog_overlay: Control
 var fog_runs: Array = []
 var sidebar: PanelContainer
 var dialog_card: PanelContainer
+var dialog_frame_layer: Control
 var hero_portrait: TextureRect
 var dialog_label: RichTextLabel
 var input_block: VBoxContainer
@@ -221,10 +222,12 @@ func _try_font(path: String) -> FontFile:
 	return null
 
 
-func _parchment_style() -> StyleBoxTexture:
+func _parchment_image() -> Image:
 	# 256x256 ivory parchment with a double gold border and small gold
-	# corner flourishes, used as a 9-slice stylebox so the corners never
-	# distort however large the dialog card grows.
+	# corner flourishes. The dialog frame is NOT a 9-slice stylebox:
+	# the corners are cropped out of this image as fixed 48 px sprites
+	# and the border lines are separate rects (see _build_dialog_frame),
+	# so only the lines ever stretch with the card.
 	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
 	img.fill(PARCHMENT)
 	for x in range(256):
@@ -243,36 +246,92 @@ func _parchment_style() -> StyleBoxTexture:
 		for k in range(2):
 			img.set_pixel(16 + k, y, GOLD)
 			img.set_pixel(239 - k, y, GOLD)
-	# Corner flourishes: two intersecting rings (wedding rings for
-	# the invitation theme) instead of diamonds, which read as
-	# squashed rhombi whenever the frame is compressed. Both rings
-	# stay inside the 48 px 9-slice corner, so they never distort.
-	var corners: Array = [[30, 30, 1, 1], [225, 30, -1, 1], [30, 225, 1, -1], [225, 225, -1, -1]]
+	# Corner flourishes: two intersecting rings (wedding rings for the
+	# invitation theme), anti-aliased so the small circles read as
+	# smooth rings rather than polygons. Both rings stay inside the
+	# 48 px corner, clear of the inner border line.
+	var corners: Array = [[28, 28, 1, 1], [227, 28, -1, 1], [28, 227, 1, -1], [227, 227, -1, -1]]
 	for c in corners:
 		var cx: int = c[0]
 		var cy: int = c[1]
 		var sx: int = c[2]
 		var sy: int = c[3]
-		for ring in [Vector2i(cx, cy), Vector2i(cx + sx * 8, cy + sy * 8)]:
-			for dx in range(-9, 10):
-				for dy in range(-9, 10):
+		for ring in [Vector2i(cx, cy), Vector2i(cx + sx * 9, cy + sy * 9)]:
+			for dx in range(-11, 12):
+				for dy in range(-11, 12):
 					var dist: float = sqrt(float(dx * dx + dy * dy))
-					if abs(dist - 8.0) <= 1.0:
-						img.set_pixel(ring.x + dx, ring.y + dy, GOLD)
-	var tex := ImageTexture.create_from_image(img)
-	var style := StyleBoxTexture.new()
-	style.texture = tex
-	style.expand_margin_left = 48
-	style.expand_margin_right = 48
-	style.expand_margin_top = 48
-	style.expand_margin_bottom = 48
-	style.content_margin_left = 20
-	style.content_margin_right = 20
-	style.content_margin_top = 20
-	style.content_margin_bottom = 20
-	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
-	style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
-	return style
+					var dd: float = abs(dist - 9.0)
+					if dd < 1.5:
+						var a: float = clamp(1.5 - dd, 0.0, 1.0)
+						var bg: Color = img.get_pixel(ring.x + dx, ring.y + dy)
+						img.set_pixel(ring.x + dx, ring.y + dy, GOLD * a + bg * (1.0 - a))
+	return img
+
+
+func _build_dialog_frame(card: PanelContainer) -> void:
+	# The frame is built from pieces, not a 9-slice: four fixed 48 px
+	# corner sprites (borders + rings baked in, never scaled) and
+	# eight solid gold line rects that stretch only along their own
+	# side — top/bottom lines stretch horizontally, left/right lines
+	# vertically. Corners can no longer distort or lose the top edge
+	# however wide or tall the dialog card grows.
+	var img := _parchment_image()
+	var layer := Control.new()
+	layer.mouse_filter = MOUSE_FILTER_IGNORE
+	layer.set_anchors_preset(PRESET_FULL_RECT)
+	card.add_child(layer)
+	dialog_frame_layer = layer
+	var corner_defs: Array = [
+		[Vector2i(0, 0), Vector2(0, 0), Vector2i(0, 0)],
+		[Vector2i(208, 0), Vector2(1, 0), Vector2i(-48, 0)],
+		[Vector2i(0, 208), Vector2(0, 1), Vector2i(0, -48)],
+		[Vector2i(208, 208), Vector2(1, 1), Vector2i(-48, -48)],
+	]
+	for def in corner_defs:
+		var src: Vector2i = def[0]
+		var anch: Vector2 = def[1]
+		var off: Vector2i = def[2]
+		var cimg := Image.create(48, 48, false, Image.FORMAT_RGBA8)
+		cimg.blit_rect(img, Rect2i(src, Vector2i(48, 48)), Vector2i.ZERO)
+		var rect := TextureRect.new()
+		rect.texture = ImageTexture.create_from_image(cimg)
+		rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rect.stretch_mode = TextureRect.STRETCH_SCALE
+		rect.mouse_filter = MOUSE_FILTER_IGNORE
+		rect.anchor_left = anch.x
+		rect.anchor_top = anch.y
+		rect.anchor_right = anch.x
+		rect.anchor_bottom = anch.y
+		rect.offset_left = off.x
+		rect.offset_top = off.y
+		rect.offset_right = off.x + 48
+		rect.offset_bottom = off.y + 48
+		layer.add_child(rect)
+	# [anchor_left, anchor_top, anchor_right, anchor_bottom,
+	#  offset_left, offset_top, offset_right, offset_bottom]
+	var lines: Array = [
+		[0.0, 0.0, 1.0, 0.0, 48, 0, -48, 5],
+		[0.0, 1.0, 1.0, 1.0, 48, -5, -48, 0],
+		[0.0, 0.0, 0.0, 1.0, 0, 48, 5, -48],
+		[1.0, 0.0, 1.0, 1.0, -5, 48, 0, -48],
+		[0.0, 0.0, 1.0, 0.0, 48, 16, -48, 18],
+		[0.0, 1.0, 1.0, 1.0, 48, -18, -48, -16],
+		[0.0, 0.0, 0.0, 1.0, 16, 48, 18, -48],
+		[1.0, 0.0, 1.0, 1.0, -18, 48, -16, -48],
+	]
+	for ln in lines:
+		var r := ColorRect.new()
+		r.color = GOLD
+		r.mouse_filter = MOUSE_FILTER_IGNORE
+		r.anchor_left = ln[0]
+		r.anchor_top = ln[1]
+		r.anchor_right = ln[2]
+		r.anchor_bottom = ln[3]
+		r.offset_left = ln[4]
+		r.offset_top = ln[5]
+		r.offset_right = ln[6]
+		r.offset_bottom = ln[7]
+		layer.add_child(r)
 
 
 func _build_ui() -> void:
@@ -397,14 +456,15 @@ func _build_ui() -> void:
 	# Dialog as a wedding-invitation card: ivory parchment, double gold
 	# border, corner flourishes (baked into a 9-slice texture).
 	dialog_card = PanelContainer.new()
-	dialog_card.add_theme_stylebox_override("panel", _parchment_style())
+	dialog_card.add_theme_stylebox_override("panel", _panel_style(PARCHMENT, Color(0, 0, 0, 0), 0))
 	dialog_card.size_flags_horizontal = SIZE_EXPAND_FILL
-	# The parchment 9-slice needs 48 px top + 48 px bottom to draw
-	# undistorted; a one-line dialog is only ~63 px tall, so without
-	# a floor the gold frame gets vertically squashed and looks
-	# crooked. 120 px leaves a small center strip.
+	# The frame corners are fixed 48 px sprites top + bottom, so the
+	# card needs at least 96 px of height for them not to overlap; a
+	# one-line dialog is only ~63 px tall, so without a floor the
+	# corners would collide. 120 px leaves a small center strip.
 	dialog_card.custom_minimum_size = Vector2(0, 120)
 	sidebar_box.add_child(dialog_card)
+	_build_dialog_frame(dialog_card)
 	var dialog_margin := MarginContainer.new()
 	dialog_margin.add_theme_constant_override("margin_left", 16)
 	dialog_margin.add_theme_constant_override("margin_right", 16)
