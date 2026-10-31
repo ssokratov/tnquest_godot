@@ -35,6 +35,8 @@ var hero_label: Label
 var reset_button: Button
 var scene_panel: PanelContainer
 var scene_grid: GridContainer
+var fog_overlay: Control
+var fog_runs: Array = []
 var sidebar: PanelContainer
 var dialog_label: RichTextLabel
 var input_block: VBoxContainer
@@ -179,6 +181,14 @@ func _build_ui() -> void:
 	scene_grid.add_theme_constant_override("h_separation", 0)
 	scene_grid.add_theme_constant_override("v_separation", 0)
 	scene_center.add_child(scene_grid)
+	# Fog overlay: a plain Control (not a container, so its children
+	# keep free positions), centred over the grid by the CenterContainer.
+	# Its fog-run children swallow the corridor downward to the panel's
+	# bottom edge, so the dark corridor has no visible end.
+	fog_overlay = Control.new()
+	fog_overlay.mouse_filter = MOUSE_FILTER_IGNORE
+	fog_overlay.visible = false
+	scene_center.add_child(fog_overlay)
 
 	# Sidebar (hidden while a photo modal is open): dialog, answers,
 	# inventory/journal buttons, D-pad, hint — all scrollable.
@@ -523,6 +533,30 @@ func _apply_cell_size() -> void:
 		child.custom_minimum_size = Vector2(cell, cell)
 	for entry in small_sprites:
 		entry["node"].custom_minimum_size = Vector2(cell / 2, cell / 2)
+	if fog_overlay == null:
+		return
+	# Fog overlay: one dark column per run, from the run's top fog cell
+	# down to the scene panel's bottom edge, so the corridor descends
+	# into darkness with no end in sight. The overlay is grid-sized and
+	# centred like the grid; its children may extend past its bottom
+	# edge — nothing in the chain clips them — which also covers the
+	# panel's bottom gap in portrait windows.
+	for child in fog_overlay.get_children():
+		fog_overlay.remove_child(child)
+		child.free()
+	fog_overlay.visible = not fog_runs.is_empty()
+	if fog_runs.is_empty():
+		return
+	var grid_h := scene_rows * cell
+	var origin_y := (scene_panel.size.y - grid_h) / 2.0
+	fog_overlay.custom_minimum_size = Vector2(scene_cols * cell, grid_h)
+	for run in fog_runs:
+		var rect := Panel.new()
+		rect.mouse_filter = MOUSE_FILTER_IGNORE
+		rect.add_theme_stylebox_override("panel", _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 0))
+		rect.position = Vector2(run["col"] * cell, run["row"] * cell)
+		rect.size = Vector2(run["span"] * cell, scene_panel.size.y - (origin_y + run["row"] * cell))
+		fog_overlay.add_child(rect)
 
 
 func _set_fit_content(label: RichTextLabel) -> void:
@@ -662,6 +696,7 @@ func _refresh() -> void:
 		child.queue_free()
 	animated_tiles = []
 	small_sprites = []
+	var fog_cells: Array = []
 	var tiles: Array = engine.visible_tiles()
 	scene_cols = tiles[0].size()
 	scene_rows = tiles.size()
@@ -674,6 +709,8 @@ func _refresh() -> void:
 			cell.custom_minimum_size = Vector2(FALLBACK_CELL, FALLBACK_CELL)
 			var is_player: bool = x == centre and y == centre
 			var emoji: String = tiles[y][x]
+			if emoji == "✖️":
+				fog_cells.append(Vector2i(x, y))
 			var same := func(nx: int, ny: int) -> bool:
 				if ny < 0 or ny >= tiles.size() or nx < 0 or nx >= tiles[ny].size():
 					return false
@@ -745,6 +782,26 @@ func _refresh() -> void:
 						_add_emoji_cell(cell, tiles[y][x])
 				else:
 					_add_emoji_cell(cell, tiles[y][x])
+
+	# Fog runs: per column, the top fog cell; adjacent columns sharing
+	# the same top row merge into one run. _apply_cell_size turns each
+	# run into a dark column reaching the panel's bottom edge.
+	var fog_top := {}
+	for c in fog_cells:
+		var col: int = c.x
+		if col not in fog_top or c.y < fog_top[col]:
+			fog_top[col] = c.y
+	var fog_cols_sorted := fog_top.keys()
+	fog_cols_sorted.sort()
+	fog_runs = []
+	for col in fog_cols_sorted:
+		var row: int = fog_top[col]
+		if fog_runs.size() > 0:
+			var last: Dictionary = fog_runs[fog_runs.size() - 1]
+			if last["col"] + last["span"] == col and last["row"] == row:
+				last["span"] += 1
+				continue
+		fog_runs.append({"col": col, "span": 1, "row": row})
 
 	_apply_cell_size()
 
