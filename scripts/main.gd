@@ -38,6 +38,8 @@ var scene_grid: GridContainer
 var fog_overlay: Control
 var fog_runs: Array = []
 var sidebar: PanelContainer
+var dialog_card: PanelContainer
+var hero_portrait: TextureRect
 var dialog_label: RichTextLabel
 var input_block: VBoxContainer
 var text_input: LineEdit
@@ -70,6 +72,16 @@ const ROAD_COLOR := Color(0.78, 0.73, 0.62)
 const DOOR_COLOR := Color(0.42, 0.29, 0.17)
 const DOOR_BORDER := Color(0.26, 0.17, 0.09)
 const BRICK_COLOR := Color(0.62, 0.36, 0.24)
+# Wedding-invitation palette (user-approved restyle): deep plum-brown
+# sidebar, ivory parchment cards, gold trim, dark-brown card text.
+const GOLD := Color(0.78, 0.62, 0.28)
+const SIDEBAR_BG := Color(0.24, 0.17, 0.19)
+const PARCHMENT := Color(0.96, 0.93, 0.84)
+const PARCHMENT_TEXT := Color(0.25, 0.18, 0.12)
+const BUTTON_BG := Color(0.42, 0.30, 0.20)
+const BUTTON_HOVER := Color(0.52, 0.38, 0.26)
+const BUTTON_PRESSED := Color(0.32, 0.22, 0.15)
+const IVORY := Color(0.96, 0.93, 0.84)
 const NARROW_WIDTH := 760
 const SIDEBAR_WIDTH := 380
 const MOVE_CODES := ["t", "d", "l", "r", "i", "j"]
@@ -133,6 +145,94 @@ func _panel_style(bg: Color, border: Color = Color(0, 0, 0, 0), radius: int = 12
 	return style
 
 
+func _button_style(bg: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = bg
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = GOLD
+	style.corner_radius_top_left = 10
+	style.corner_radius_top_right = 10
+	style.corner_radius_bottom_left = 10
+	style.corner_radius_bottom_right = 10
+	return style
+
+
+func _style_button(button: Button) -> void:
+	# One wood-and-gold button style for every button in the game:
+	# answers, modal answers, inventory/journal, D-pad, reset, submit.
+	button.add_theme_stylebox_override("normal", _button_style(BUTTON_BG))
+	button.add_theme_stylebox_override("hover", _button_style(BUTTON_HOVER))
+	button.add_theme_stylebox_override("pressed", _button_style(BUTTON_PRESSED))
+	button.add_theme_color_override("font_color", IVORY)
+	button.add_theme_color_override("font_hover_color", IVORY)
+	button.add_theme_color_override("font_pressed_color", IVORY)
+	button.add_theme_color_override("font_disabled_color", Color(IVORY.r, IVORY.g, IVORY.b, 0.5))
+
+
+func _try_font(path: String) -> FontFile:
+	# Serif fonts activate automatically once the TTFs are in
+	# res://assets/fonts/; until then the default font is used, so a
+	# build without the (binary, user-pushed) font files still works.
+	if ResourceLoader.exists(path):
+		return load(path) as FontFile
+	return null
+
+
+func _parchment_style() -> StyleBoxTexture:
+	# 256x256 ivory parchment with a double gold border and small gold
+	# corner flourishes, used as a 9-slice stylebox so the corners never
+	# distort however large the dialog or modal card grows.
+	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	img.fill(PARCHMENT)
+	for x in range(256):
+		for k in range(5):
+			img.set_pixel(x, k, GOLD)
+			img.set_pixel(x, 255 - k, GOLD)
+	for y in range(256):
+		for k in range(5):
+			img.set_pixel(k, y, GOLD)
+			img.set_pixel(255 - k, y, GOLD)
+	for x in range(16, 240):
+		for k in range(2):
+			img.set_pixel(x, 16 + k, GOLD)
+			img.set_pixel(x, 239 - k, GOLD)
+	for y in range(16, 240):
+		for k in range(2):
+			img.set_pixel(16 + k, y, GOLD)
+			img.set_pixel(239 - k, y, GOLD)
+	var corners: Array = [[30, 30, 1, 1], [225, 30, -1, 1], [30, 225, 1, -1], [225, 225, -1, -1]]
+	for c in corners:
+		var cx: int = c[0]
+		var cy: int = c[1]
+		var sx: int = c[2]
+		var sy: int = c[3]
+		for dx in range(-5, 6):
+			for dy in range(-5, 6):
+				if abs(dx) + abs(dy) <= 5:
+					img.set_pixel(cx + dx, cy + dy, GOLD)
+		for dx in range(-2, 3):
+			for dy in range(-2, 3):
+				if dx * dx + dy * dy <= 4:
+					img.set_pixel(cx + sx * 13 + dx, cy + sy * 13 + dy, GOLD)
+	var tex := ImageTexture.create_from_image(img)
+	var style := StyleBoxTexture.new()
+	style.texture = tex
+	style.expand_margin_left = 48
+	style.expand_margin_right = 48
+	style.expand_margin_top = 48
+	style.expand_margin_bottom = 48
+	style.content_margin_left = 20
+	style.content_margin_right = 20
+	style.content_margin_top = 20
+	style.content_margin_bottom = 20
+	style.axis_stretch_horizontal = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	style.axis_stretch_vertical = StyleBoxTexture.AXIS_STRETCH_MODE_STRETCH
+	return style
+
+
 func _build_ui() -> void:
 	set_anchors_preset(PRESET_FULL_RECT)
 	var margin := MarginContainer.new()
@@ -148,17 +248,32 @@ func _build_ui() -> void:
 	margin.add_child(vbox)
 
 	var header := HBoxContainer.new()
+	var portrait_frame := PanelContainer.new()
+	portrait_frame.add_theme_stylebox_override("panel", _panel_style(Color(0, 0, 0, 0), GOLD, 8))
+	hero_portrait = TextureRect.new()
+	hero_portrait.custom_minimum_size = Vector2(48, 48)
+	hero_portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hero_portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait_frame.add_child(hero_portrait)
+	header.add_child(portrait_frame)
 	hero_label = Label.new()
 	hero_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	hero_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	hero_label.add_theme_font_size_override("font_size", 24)
+	hero_label.add_theme_color_override("font_color", GOLD)
 	header.add_child(hero_label)
 	reset_button = Button.new()
 	reset_button.text = "Начать заново"
 	reset_button.focus_mode = FOCUS_NONE
 	reset_button.add_theme_font_size_override("font_size", 20)
+	_style_button(reset_button)
 	reset_button.pressed.connect(_on_reset)
 	header.add_child(reset_button)
 	vbox.add_child(header)
+	var header_divider := Panel.new()
+	header_divider.custom_minimum_size = Vector2(0, 2)
+	header_divider.add_theme_stylebox_override("panel", _panel_style(GOLD, Color(0, 0, 0, 0), 0))
+	vbox.add_child(header_divider)
 
 	# Game row: scene on the left, sidebar on the right (wide windows).
 	game_row = HBoxContainer.new()
@@ -171,7 +286,7 @@ func _build_ui() -> void:
 	scene_panel = PanelContainer.new()
 	scene_panel.size_flags_horizontal = SIZE_EXPAND_FILL
 	scene_panel.size_flags_vertical = SIZE_EXPAND_FILL
-	scene_panel.add_theme_stylebox_override("panel", _panel_style(SCENE_BG, Color(0.72, 0.67, 0.57)))
+	scene_panel.add_theme_stylebox_override("panel", _panel_style(SCENE_BG, GOLD))
 	game_row.add_child(scene_panel)
 	var scene_center := CenterContainer.new()
 	scene_panel.add_child(scene_center)
@@ -193,7 +308,7 @@ func _build_ui() -> void:
 	# Sidebar (hidden while a photo modal is open): dialog, answers,
 	# inventory/journal buttons, D-pad, hint — all scrollable.
 	sidebar = PanelContainer.new()
-	sidebar.add_theme_stylebox_override("panel", _panel_style(Color(0.14, 0.14, 0.22), Color(0.35, 0.35, 0.5)))
+	sidebar.add_theme_stylebox_override("panel", _panel_style(SIDEBAR_BG, GOLD))
 	sidebar.custom_minimum_size = Vector2(SIDEBAR_WIDTH, 0)
 	sidebar.size_flags_vertical = SIZE_EXPAND_FILL
 	game_row.add_child(sidebar)
@@ -213,6 +328,18 @@ func _build_ui() -> void:
 	sidebar_box.add_theme_constant_override("separation", 12)
 	sidebar_scroll.add_child(sidebar_box)
 
+	# Dialog as a wedding-invitation card: ivory parchment, double gold
+	# border, corner flourishes (baked into a 9-slice texture).
+	dialog_card = PanelContainer.new()
+	dialog_card.add_theme_stylebox_override("panel", _parchment_style())
+	dialog_card.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_box.add_child(dialog_card)
+	var dialog_margin := MarginContainer.new()
+	dialog_margin.add_theme_constant_override("margin_left", 16)
+	dialog_margin.add_theme_constant_override("margin_right", 16)
+	dialog_margin.add_theme_constant_override("margin_top", 14)
+	dialog_margin.add_theme_constant_override("margin_bottom", 14)
+	dialog_card.add_child(dialog_margin)
 	dialog_label = RichTextLabel.new()
 	dialog_label.bbcode_enabled = true
 	# Explicit wrap: without it a long dialog line would widen the
@@ -226,8 +353,13 @@ func _build_ui() -> void:
 	dialog_label.add_theme_font_size_override("bold_font_size", 22)
 	dialog_label.add_theme_font_size_override("italics_font_size", 22)
 	dialog_label.add_theme_font_size_override("bold_italics_font_size", 22)
+	dialog_label.add_theme_color_override("default_color", PARCHMENT_TEXT)
 	dialog_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	sidebar_box.add_child(dialog_label)
+	dialog_margin.add_child(dialog_label)
+	var dialog_divider := Panel.new()
+	dialog_divider.custom_minimum_size = Vector2(0, 3)
+	dialog_divider.add_theme_stylebox_override("panel", _panel_style(GOLD, Color(0, 0, 0, 0), 0))
+	sidebar_box.add_child(dialog_divider)
 
 	# Free-text input, shown only when the current dialog has hidden
 	# answers (the Demianov phone-call riddles): in the Telegram
@@ -250,10 +382,12 @@ func _build_ui() -> void:
 	submit_button.text = "Ответить"
 	submit_button.focus_mode = FOCUS_NONE
 	submit_button.add_theme_font_size_override("font_size", 20)
+	_style_button(submit_button)
 	submit_button.pressed.connect(_on_text_submit)
 	input_row.add_child(submit_button)
 	feedback_label = Label.new()
 	feedback_label.add_theme_font_size_override("font_size", 16)
+	feedback_label.add_theme_color_override("font_color", IVORY)
 	feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	feedback_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	input_block.add_child(feedback_label)
@@ -277,6 +411,7 @@ func _build_ui() -> void:
 		button.size_flags_horizontal = SIZE_EXPAND_FILL
 		button.focus_mode = FOCUS_NONE
 		button.add_theme_font_size_override("font_size", 18)
+		_style_button(button)
 		button.pressed.connect(_on_move.bind(code))
 		inv_row.add_child(button)
 		dpad_buttons[code] = button
@@ -301,6 +436,7 @@ func _build_ui() -> void:
 			button.expand_icon = true
 			button.custom_minimum_size = Vector2(52, 52)
 			button.focus_mode = FOCUS_NONE
+			_style_button(button)
 			button.pressed.connect(_on_move.bind(code))
 			dpad.add_child(button)
 			dpad_buttons[code] = button
@@ -308,6 +444,30 @@ func _build_ui() -> void:
 
 
 	_build_modal()
+
+	# Serif fonts (Noto Serif Display for the hero title, Noto Serif
+	# for dialog/modal text — both with full Cyrillic) activate
+	# automatically once the TTFs are in res://assets/fonts/.
+	var display_font := _try_font("res://assets/fonts/NotoSerifDisplay-Bold.ttf")
+	if display_font != null:
+		hero_label.add_theme_font_override("font", display_font)
+	var body_font := _try_font("res://assets/fonts/NotoSerif-Regular.ttf")
+	var body_bold := _try_font("res://assets/fonts/NotoSerif-Bold.ttf")
+	var body_italic := _try_font("res://assets/fonts/NotoSerif-Italic.ttf")
+	var body_bi := _try_font("res://assets/fonts/NotoSerif-BoldItalic.ttf")
+	if body_font != null:
+		dialog_label.add_theme_font_override("normal_font", body_font)
+		modal_text.add_theme_font_override("normal_font", body_font)
+	if body_bold != null:
+		dialog_label.add_theme_font_override("bold_font", body_bold)
+		modal_text.add_theme_font_override("bold_font", body_bold)
+	if body_italic != null:
+		dialog_label.add_theme_font_override("italics_font", body_italic)
+		modal_text.add_theme_font_override("italics_font", body_italic)
+	if body_bi != null:
+		dialog_label.add_theme_font_override("bold_italics_font", body_bi)
+		modal_text.add_theme_font_override("bold_italics_font", body_bi)
+
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	call_deferred("_update_layout_mode")
 	call_deferred("_apply_cell_size")
@@ -594,7 +754,7 @@ func _build_modal() -> void:
 	modal_margin.add_theme_constant_override("margin_bottom", 28)
 	modal.add_child(modal_margin)
 	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _panel_style(Color(0.15, 0.15, 0.24), Color(0.45, 0.45, 0.6)))
+	card.add_theme_stylebox_override("panel", _parchment_style())
 	modal_margin.add_child(card)
 	var card_margin := MarginContainer.new()
 	card_margin.add_theme_constant_override("margin_left", 16)
@@ -620,6 +780,7 @@ func _build_modal() -> void:
 	modal_text.add_theme_font_size_override("bold_font_size", 22)
 	modal_text.add_theme_font_size_override("italics_font_size", 22)
 	modal_text.add_theme_font_size_override("bold_italics_font_size", 22)
+	modal_text.add_theme_color_override("default_color", PARCHMENT_TEXT)
 	card_box.add_child(modal_text)
 	modal_answers = VBoxContainer.new()
 	modal_answers.add_theme_constant_override("separation", 8)
@@ -687,6 +848,9 @@ func _sprite_frames(name: String) -> Array:
 func _refresh() -> void:
 	var dlg := engine.current_dialog()
 	hero_label.text = "Герой: " + engine.hero_name()
+	var hero_frames := _sprite_frames(SPRITES.get(dlg.get("player_icon", "O"), "toshik"))
+	if hero_frames.size() > 0:
+		hero_portrait.texture = hero_frames[0]
 	var message := _markdown_to_bbcode(_strip_emoji(engine.current_message()))
 	var answers := engine.available_answers()
 	var has_photo := "photo" in dlg
@@ -822,6 +986,7 @@ func _refresh() -> void:
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			button.add_theme_font_size_override("font_size", _scaled(21))
+			_style_button(button)
 			button.pressed.connect(_on_answer.bind(answer))
 			modal_answers.add_child(button)
 		modal.visible = true
@@ -849,6 +1014,7 @@ func _refresh() -> void:
 				# the sidebar at 380 px; only a window resize reflows.
 				button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				button.add_theme_font_size_override("font_size", _scaled(20))
+				_style_button(button)
 				button.pressed.connect(_on_answer.bind(answer))
 				answers_box.add_child(button)
 		dpad_block.visible = has_move
