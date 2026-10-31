@@ -1013,9 +1013,10 @@ func _apply_cell_size() -> void:
 		entry["node"].custom_minimum_size = Vector2(cell / 2, cell / 2)
 	for entry in card_sprites:
 		# Photo card: 0.62 x 0.51 of a cell (matches the shoe's own
-		# aspect), rotated -0.18 rad, like the mockup; the rotated
-		# bounding box (0.70 x 0.61) still fits its cell. The shoe
-		# sits inside with a small ivory margin, like a picture.
+		# aspect), rotated -0.30 rad (about 17 degrees, clearly
+		# visible even on a small card); the rotated bounding box
+		# (0.74 x 0.67) still fits its cell. The shoe sits inside
+		# with a small ivory margin, like a picture.
 		var cw := cell * 0.62
 		var ch := cell * 0.51
 		var m := cell * 0.06
@@ -1290,7 +1291,7 @@ func _refresh() -> void:
 							# up in _apply_cell_size like other sprites.
 							var cwrap := CenterContainer.new()
 							var card := Control.new()
-							card.rotation = -0.18
+							card.rotation = -0.30
 							var shadow := ColorRect.new()
 							shadow.color = Color(0, 0, 0, 0.25)
 							card.add_child(shadow)
