@@ -45,7 +45,15 @@ var dialog_frame_layer: Control
 var hero_portrait: TextureRect
 var dialog_label: RichTextLabel
 var input_block: VBoxContainer
+var input_row: HBoxContainer
 var text_input: LineEdit
+# Web-mobile native answer input (see _sync_native_answer_input):
+# the game's LineEdit drops composed virtual-keyboard text on
+# Android web, so hidden-answer dialogs use a real HTML <input>
+# bridged back via JavaScriptBridge. The callback reference must
+# be kept, or the engine's refcounting frees it.
+var native_input_active := false
+var native_answer_callback = null
 var submit_button: Button
 var feedback_label: Label
 var answers_box: VBoxContainer
@@ -139,6 +147,7 @@ const SPRITES := {
 func _ready() -> void:
 	engine.load_data("res://data/quest.json")
 	_build_ui()
+	_setup_native_answer_callback()
 	if engine.has_save() and engine.load_save():
 		pass
 	else:
@@ -568,7 +577,7 @@ func _build_ui() -> void:
 	input_block.size_flags_horizontal = SIZE_EXPAND_FILL
 	input_block.visible = false
 	sidebar_box.add_child(input_block)
-	var input_row := HBoxContainer.new()
+	input_row = HBoxContainer.new()
 	input_row.add_theme_constant_override("separation", 8)
 	input_block.add_child(input_row)
 	text_input = LineEdit.new()
@@ -1478,6 +1487,7 @@ func _refresh() -> void:
 	input_block.visible = not engine.hidden_answers().is_empty()
 	feedback_label.text = ""
 	text_input.text = ""
+	_sync_native_answer_input()
 	for child in answers_box.get_children():
 		child.queue_free()
 	var has_move := false
@@ -1522,7 +1532,7 @@ func _refresh() -> void:
 	# typed text goes nowhere. Focus it as soon as a hidden-answer
 	# dialog opens: the virtual keyboard opens at once, in the tap's
 	# own gesture, and no tap on the field is needed at all.
-	if sidebar.visible and input_block.visible:
+	if sidebar.visible and input_block.visible and not native_input_active:
 		text_input.grab_focus()
 	# Choice dialogs on phones grow into a full sheet (see below).
 	_update_dialog_expansion()
@@ -1550,6 +1560,67 @@ func _on_text_submit(_text: String = "") -> void:
 	feedback_label.text = "Демьянов не понял — попробуй ещё раз."
 	text_input.grab_focus()
 	text_input.select_all()
+
+
+func _setup_native_answer_callback() -> void:
+	# Web only: hand JS a callback so the native answer bar can
+	# submit typed text back into the game. Note the gate is
+	# OS.has_feature("web"), NOT Engine.has_singleton: the
+	# JavaScriptBridge singleton exists on every platform, but
+	# off-web its methods just return null (verified headless:
+	# get_interface("window") is null there). Non-web builds and
+	# headless tests skip this entirely, keeping the LineEdit path.
+	if not OS.has_feature("web"):
+		return
+	native_answer_callback = JavaScriptBridge.create_callback(_on_native_answer)
+	JavaScriptBridge.get_interface("window").__tnAnswerCallback = native_answer_callback
+
+
+func _sync_native_answer_input() -> void:
+	# Web-mobile only: hidden-answer dialogs type into a real HTML
+	# <input> (the native bar in web_shell.html) instead of the
+	# game's LineEdit, whose web bridge drops composed text from
+	# virtual keyboards on Android: focus opens, autocomplete runs,
+	# but nothing lands. The bar is shown only on touch devices
+	# (its JS returns false on desktops, keeping the LineEdit).
+	# Non-web builds skip this entirely.
+	if not OS.has_feature("web"):
+		return
+	var window_obj = JavaScriptBridge.get_interface("window")
+	if window_obj == null:
+		native_input_active = false
+		input_row.visible = true
+		return
+	if input_block.visible:
+		var shown = window_obj.__tnShowAnswer()
+		native_input_active = shown == true
+		input_row.visible = not native_input_active
+		if native_input_active and get_viewport().gui_get_focus_owner() == text_input:
+			text_input.release_focus()
+	else:
+		window_obj.__tnHideAnswer()
+		native_input_active = false
+		input_row.visible = true
+
+
+func _on_native_answer(args: Array) -> void:
+	# Same rule as _on_text_submit, but the text comes from the
+	# native bar (its JS passes the value as the first argument).
+	# On a correct answer the refresh below re-syncs (hiding the
+	# bar when the next dialog has no hidden answers); on a wrong
+	# one the bar stays, refocused with its text selected.
+	if args.is_empty():
+		return
+	var typed := (args[0] as String).strip_edges().to_lower()
+	if typed == "":
+		return
+	for answer in engine.hidden_answers():
+		if (answer["message"] as String).strip_edges().to_lower() == typed:
+			_on_answer(answer)
+			return
+	feedback_label.text = "Демьянов не понял — попробуй ещё раз."
+	if OS.has_feature("web"):
+		JavaScriptBridge.get_interface("window").__tnFocusAnswer()
 
 
 func _add_emoji_cell(cell: PanelContainer, emoji: String) -> void:

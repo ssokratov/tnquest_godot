@@ -27,6 +27,41 @@ body {
 	outline: none;
 }
 
+/* Native answer bar (mobile web): a real HTML input, because
+   Godot's own LineEdit drops composed virtual-keyboard text on
+   Android web. Fixed below the game's header (56 px clears it on
+   phones and tablets); hidden until the game shows it. */
+#tn-answer-bar {
+	display: none;
+	position: fixed;
+	left: 12px;
+	right: 12px;
+	top: 56px;
+	z-index: 1000;
+	gap: 8px;
+}
+
+#tn-answer-input {
+	flex: 1;
+	min-width: 0;
+	font-size: 18px;
+	padding: 10px 12px;
+	color: #f5eed7;
+	background: #2a1d20;
+	border: 2px solid #c79e47;
+	border-radius: 8px;
+	outline: none;
+}
+
+#tn-answer-submit {
+	font-size: 18px;
+	padding: 10px 16px;
+	color: #f5eed7;
+	background: #6b4d33;
+	border: 2px solid #c79e47;
+	border-radius: 8px;
+}
+
 #status, #status-splash, #status-progress {
 	position: absolute;
 	left: 0;
@@ -121,6 +156,58 @@ body {
 		<canvas id="canvas">
 			Your browser does not support the canvas tag.
 		</canvas>
+
+		<div id="tn-answer-bar">
+			<input id="tn-answer-input" type="text" inputmode="text" enterkeyhint="go" placeholder="Введите ответ…" autocomplete="off" autocapitalize="off" spellcheck="false">
+			<button id="tn-answer-submit" type="button">Ответить</button>
+		</div>
+		<script>
+		// Native answer bar (mobile web): Godot's own LineEdit drops
+		// composed text from Android virtual keyboards (focus opens,
+		// autocomplete runs, but nothing lands in the field), so
+		// hidden-answer dialogs type here instead, and the value is
+		// handed back to the game through window.__tnAnswerCallback
+		// (set by the game at startup via JavaScriptBridge).
+		function __tnShowAnswer() {
+			// Desktops keep the game's LineEdit (physical keyboards
+			// work there); only touch devices get the native bar.
+			if (!('ontouchstart' in window) && navigator.maxTouchPoints <= 0) {
+				return false;
+			}
+			var bar = document.getElementById('tn-answer-bar');
+			var input = document.getElementById('tn-answer-input');
+			input.value = '';
+			bar.style.display = 'flex';
+			input.focus();
+			return true;
+		}
+		function __tnHideAnswer() {
+			var bar = document.getElementById('tn-answer-bar');
+			if (bar) {
+				bar.style.display = 'none';
+			}
+		}
+		function __tnFocusAnswer() {
+			var input = document.getElementById('tn-answer-input');
+			if (input) {
+				input.focus();
+				input.select();
+			}
+		}
+		function __tnSubmitAnswer() {
+			var input = document.getElementById('tn-answer-input');
+			if (input && window.__tnAnswerCallback) {
+				window.__tnAnswerCallback(input.value);
+			}
+		}
+		document.getElementById('tn-answer-submit').addEventListener('click', __tnSubmitAnswer);
+		document.getElementById('tn-answer-input').addEventListener('keydown', function (event) {
+			if (event.key === 'Enter') {
+				event.preventDefault();
+				__tnSubmitAnswer();
+			}
+		});
+		</script>
 
 		<noscript>
 			Your browser does not support JavaScript.
