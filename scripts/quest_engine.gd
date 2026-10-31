@@ -67,6 +67,11 @@ func load_save() -> bool:
 	if not (save.get("open_dialog", "") in (data["dialogs"] as Dictionary)):
 		return false
 	map_rows = (save["map_rows"] as Array).duplicate()
+	# Saves from before the ZAGS ending lack its rows: append the
+	# new rows from the current map instead of stranding the
+	# teleport below the saved map's bottom edge.
+	while map_rows.size() < initial_map_rows.size():
+		map_rows.append(initial_map_rows[map_rows.size()])
 	pos = Vector2i(save["pos"][0], save["pos"][1])
 	inventory = (save["inventory"] as Array).duplicate()
 	journal_all = (save["journal_all"] as Array).duplicate()
