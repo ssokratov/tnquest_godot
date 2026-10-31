@@ -36,6 +36,10 @@ var scene_panel: PanelContainer
 var scene_grid: GridContainer
 var sidebar: PanelContainer
 var dialog_label: RichTextLabel
+var input_block: VBoxContainer
+var text_input: LineEdit
+var submit_button: Button
+var feedback_label: Label
 var answers_box: VBoxContainer
 var dpad_block: VBoxContainer
 var dpad_buttons := {}
@@ -133,7 +137,7 @@ func _build_ui() -> void:
 	var header := HBoxContainer.new()
 	hero_label = Label.new()
 	hero_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	hero_label.add_theme_font_size_override("font_size", 22)
+	hero_label.add_theme_font_size_override("font_size", 24)
 	header.add_child(hero_label)
 	var reset := Button.new()
 	reset.text = "Начать заново"
@@ -190,9 +194,38 @@ func _build_ui() -> void:
 	dialog_label = RichTextLabel.new()
 	dialog_label.bbcode_enabled = true
 	_set_fit_content(dialog_label)
-	dialog_label.add_theme_font_size_override("normal_font_size", 19)
+	dialog_label.add_theme_font_size_override("normal_font_size", 22)
 	dialog_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	sidebar_box.add_child(dialog_label)
+
+	# Free-text input, shown only when the current dialog has hidden
+	# answers (the Demianov phone-call riddles): in the Telegram
+	# original the player typed these, there was no button for them.
+	input_block = VBoxContainer.new()
+	input_block.add_theme_constant_override("separation", 6)
+	input_block.size_flags_horizontal = SIZE_EXPAND_FILL
+	input_block.visible = false
+	sidebar_box.add_child(input_block)
+	var input_row := HBoxContainer.new()
+	input_row.add_theme_constant_override("separation", 8)
+	input_block.add_child(input_row)
+	text_input = LineEdit.new()
+	text_input.placeholder_text = "Введите ответ…"
+	text_input.size_flags_horizontal = SIZE_EXPAND_FILL
+	text_input.add_theme_font_size_override("font_size", 20)
+	text_input.text_submitted.connect(_on_text_submit)
+	input_row.add_child(text_input)
+	submit_button = Button.new()
+	submit_button.text = "Ответить"
+	submit_button.focus_mode = FOCUS_NONE
+	submit_button.add_theme_font_size_override("font_size", 20)
+	submit_button.pressed.connect(_on_text_submit)
+	input_row.add_child(submit_button)
+	feedback_label = Label.new()
+	feedback_label.add_theme_font_size_override("font_size", 16)
+	feedback_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	feedback_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	input_block.add_child(feedback_label)
 
 	answers_box = VBoxContainer.new()
 	answers_box.add_theme_constant_override("separation", 8)
@@ -212,7 +245,7 @@ func _build_ui() -> void:
 		button.text = MOVE_WORDS[code]
 		button.size_flags_horizontal = SIZE_EXPAND_FILL
 		button.focus_mode = FOCUS_NONE
-		button.add_theme_font_size_override("font_size", 16)
+		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(_on_move.bind(code))
 		inv_row.add_child(button)
 		dpad_buttons[code] = button
@@ -244,7 +277,7 @@ func _build_ui() -> void:
 	hint_label = Label.new()
 	hint_label.text = "Стрелки / WASD или кнопки — движение, когда оно предлагается. Прогресс сохраняется автоматически."
 	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.add_theme_font_size_override("font_size", 13)
+	hint_label.add_theme_font_size_override("font_size", 15)
 	hint_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	sidebar_box.add_child(hint_label)
 
@@ -252,6 +285,7 @@ func _build_ui() -> void:
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	call_deferred("_update_layout_mode")
 	call_deferred("_apply_cell_size")
+	call_deferred("_refresh_fonts")
 
 
 # --- procedural arrow icons (font-independent, so Web never shows tofu) ---
@@ -290,17 +324,49 @@ func _arrow_icon(code: String) -> Texture2D:
 	return tex
 
 
-# --- responsive layout + scene scaling --------------------------------------
+# --- responsive layout + scene scaling + font scaling -----------------------
+
+# Fixed sizes looked small on wide windows and on phones, so fonts grow
+# with the viewport width (1.0x up to 1000 px, 1.5x beyond 1500 px).
+# Answer buttons are rebuilt on every refresh, so they pick the current
+# scale up at creation; static labels are re-scaled here on resize.
+func _font_scale() -> float:
+	var w := get_viewport_rect().size.x
+	if w <= 0:
+		return 1.0
+	return clamp(w / 1000.0, 1.0, 1.5)
+
+
+func _scaled(base: int) -> int:
+	return int(round(base * _font_scale()))
+
+
+func _refresh_fonts() -> void:
+	if hero_label == null:
+		return
+	hero_label.add_theme_font_size_override("font_size", _scaled(24))
+	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(22))
+	modal_text.add_theme_font_size_override("normal_font_size", _scaled(22))
+	hint_label.add_theme_font_size_override("font_size", _scaled(15))
+	text_input.add_theme_font_size_override("font_size", _scaled(20))
+	submit_button.add_theme_font_size_override("font_size", _scaled(20))
+	feedback_label.add_theme_font_size_override("font_size", _scaled(16))
+	for code in ["i", "j"]:
+		if code in dpad_buttons:
+			(dpad_buttons[code] as Button).add_theme_font_size_override("font_size", _scaled(18))
+
 
 func _notification(what: int) -> void:
 	if what == NOTIFICATION_RESIZED:
 		call_deferred("_update_layout_mode")
 		call_deferred("_apply_cell_size")
+		call_deferred("_refresh_fonts")
 
 
 func _on_viewport_resized() -> void:
 	_update_layout_mode()
 	_apply_cell_size()
+	_refresh_fonts()
 
 
 func _update_layout_mode() -> void:
@@ -404,7 +470,7 @@ func _build_modal() -> void:
 	modal_text = RichTextLabel.new()
 	modal_text.bbcode_enabled = true
 	_set_fit_content(modal_text)
-	modal_text.add_theme_font_size_override("normal_font_size", 19)
+	modal_text.add_theme_font_size_override("normal_font_size", 22)
 	card_box.add_child(modal_text)
 	modal_answers = VBoxContainer.new()
 	modal_answers.add_theme_constant_override("separation", 8)
@@ -550,7 +616,7 @@ func _refresh() -> void:
 			button.text = _answer_label(answer["message"])
 			button.focus_mode = FOCUS_NONE
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-			button.add_theme_font_size_override("font_size", 18)
+			button.add_theme_font_size_override("font_size", _scaled(21))
 			button.pressed.connect(_on_answer.bind(answer))
 			modal_answers.add_child(button)
 		modal.visible = true
@@ -558,6 +624,9 @@ func _refresh() -> void:
 		modal.visible = false
 		sidebar.visible = true
 		dialog_label.text = message
+		input_block.visible = not engine.hidden_answers().is_empty()
+		feedback_label.text = ""
+		text_input.text = ""
 		for child in answers_box.get_children():
 			child.queue_free()
 		var has_move := false
@@ -569,7 +638,7 @@ func _refresh() -> void:
 				button.text = _answer_label(answer["message"])
 				button.focus_mode = FOCUS_NONE
 				button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-				button.add_theme_font_size_override("font_size", 17)
+				button.add_theme_font_size_override("font_size", _scaled(20))
 				button.pressed.connect(_on_answer.bind(answer))
 				answers_box.add_child(button)
 		dpad_block.visible = has_move
@@ -582,6 +651,31 @@ func _refresh() -> void:
 			var button: Button = dpad_buttons[code]
 			button.disabled = not found
 			button.modulate = Color(1, 1, 1, 1) if found else Color(1, 1, 1, 0.35)
+	_release_text_focus()
+
+
+func _release_text_focus() -> void:
+	# Keep keyboard focus in the input only while it is usable;
+	# otherwise WASD would stay blocked after the dialog changed.
+	if get_viewport().gui_get_focus_owner() == text_input:
+		if not (sidebar.visible and input_block.visible):
+			text_input.release_focus()
+
+
+func _on_text_submit(_text: String = "") -> void:
+	var typed := text_input.text.strip_edges().to_lower()
+	if typed == "":
+		return
+	# Same rule as the original (StringExtensions.SameAs): trim and
+	# case-insensitive compare against the hidden answers.
+	for answer in engine.hidden_answers():
+		if (answer["message"] as String).strip_edges().to_lower() == typed:
+			text_input.release_focus()
+			_on_answer(answer)
+			return
+	feedback_label.text = "Демьянов не понял — попробуй ещё раз."
+	text_input.grab_focus()
+	text_input.select_all()
 
 
 func _add_emoji_cell(cell: PanelContainer, emoji: String) -> void:
@@ -648,6 +742,10 @@ func _on_reset() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	# While the player types an answer, letters must go to the input
+	# only — otherwise a typed "В" (physical D key) would move the hero.
+	if get_viewport().gui_get_focus_owner() is LineEdit:
+		return
 	if event is InputEventKey and event.pressed and not event.echo:
 		var ev := event as InputEventKey
 		# Physical key, not logical keycode: with a Russian layout the

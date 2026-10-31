@@ -100,6 +100,21 @@ func available_answers() -> Array:
 	return out
 
 
+func hidden_answers() -> Array:
+	# The Telegram original matched typed text against ALL available
+	# answers, hidden ones included (QuestService.ProcessAnswer filters
+	# by Available only, not by IsHidden). These are the answers a
+	# free-text input must match — e.g. the Demianov phone-call riddles.
+	var out: Array = []
+	for answer in current_dialog().get("answers", []):
+		if not answer.get("hidden", false):
+			continue
+		if "available" in answer and not _eval_cond(answer["available"]):
+			continue
+		out.append(answer)
+	return out
+
+
 func apply_answer(answer: Dictionary) -> void:
 	if "change_inventory" in answer:
 		for step in (answer["change_inventory"] as Dictionary)["seq"]:
