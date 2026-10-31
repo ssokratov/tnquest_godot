@@ -47,6 +47,7 @@ var submit_button: Button
 var feedback_label: Label
 var answers_box: VBoxContainer
 var dpad_block: VBoxContainer
+var dpad_pad: GridContainer
 var dpad_buttons := {}
 var photo_rect: TextureRect
 var showing_photo := false
@@ -94,12 +95,20 @@ const MOVE_KEYS := {
 	KEY_LEFT: "l", KEY_A: "l",
 	KEY_RIGHT: "r", KEY_D: "r",
 }
-# Pickup items render at half cell size; characters (and fire) stay full.
+# Pickup items render at half cell size; fire stays full; characters
+# render at CHAR_SPRITE_SCALE (see SPRITE_SCALE) so their heads clear
+# the cell edge.
 const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe", "taxofon"]
-# Per-sprite display scale in a scene cell (1.0 = full cell): zags
+# Per-sprite display scale in a scene cell (1.0 = full cell). Zags
 # fills her canvas edge to edge, so she reads a third taller than the
-# other characters; 0.8 brings her in line with them.
+# other characters; 0.8 brings her in line with them. Every other
+# character defaults to 0.9: measured, all AI frames fill their canvas
+# edge to edge (top=0, bottom=512), so at full cell height the heads
+# sit exactly on the cell border and read as cut off, and the 12 px
+# frame difference hops the figure; a 0.9 scale leaves a 5% margin
+# that absorbs the hop.
 const SPRITE_SCALE := {"zags": 0.8}
+const CHAR_SPRITE_SCALE := 0.9
 # Map character -> sprite set in assets/sprites/ (<name>_0.png, _1, _2).
 const SPRITES := {
 	"O": "toshik", "N": "nastya", "Z": "zags", "J": "jacob",
@@ -173,6 +182,11 @@ func _style_button(button: Button) -> void:
 	button.add_theme_color_override("font_hover_color", IVORY)
 	button.add_theme_color_override("font_pressed_color", IVORY)
 	button.add_theme_color_override("font_disabled_color", Color(IVORY.r, IVORY.g, IVORY.b, 0.5))
+	# Tappable targets: every button is at least 56 px tall, so answer
+	# buttons (and the D-pad arrows) are comfortable to press on a phone.
+	var ms := button.custom_minimum_size
+	ms.y = max(ms.y, 56)
+	button.custom_minimum_size = ms
 
 
 func _try_font(path: String) -> FontFile:
@@ -315,6 +329,13 @@ func _build_ui() -> void:
 	photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	photo_rect.visible = false
 	scene_center.add_child(photo_rect)
+	# D-pad overlay: a plain Control stacked over the scene — the
+	# PanelContainer fits every child to its full rect, so this layer
+	# covers the scene and the arrow pad can anchor to its
+	# bottom-right corner. Clicks pass through it except on buttons.
+	var scene_overlay := Control.new()
+	scene_overlay.mouse_filter = MOUSE_FILTER_IGNORE
+	scene_panel.add_child(scene_overlay)
 
 	# Sidebar: dialog, answers,
 	# inventory/journal buttons, D-pad, hint — all scrollable.
@@ -408,7 +429,9 @@ func _build_ui() -> void:
 	answers_box.size_flags_horizontal = SIZE_EXPAND_FILL
 	sidebar_box.add_child(answers_box)
 
-	# D-pad block: inventory/journal as text buttons above the arrow pad.
+	# Inventory/journal buttons. The arrow pad itself is overlaid on
+	# the scene's bottom-right corner (see scene_overlay above), so
+	# the sidebar keeps its space for dialog text and answers.
 	dpad_block = VBoxContainer.new()
 	dpad_block.add_theme_constant_override("separation", 8)
 	dpad_block.size_flags_horizontal = SIZE_EXPAND_FILL
@@ -426,13 +449,12 @@ func _build_ui() -> void:
 		button.pressed.connect(_on_move.bind(code))
 		inv_row.add_child(button)
 		dpad_buttons[code] = button
-	var dpad_center := CenterContainer.new()
-	dpad_block.add_child(dpad_center)
-	var dpad := GridContainer.new()
-	dpad.columns = 3
-	dpad.add_theme_constant_override("h_separation", 4)
-	dpad.add_theme_constant_override("v_separation", 4)
-	dpad_center.add_child(dpad)
+	dpad_pad = GridContainer.new()
+	dpad_pad.columns = 3
+	dpad_pad.add_theme_constant_override("h_separation", 4)
+	dpad_pad.add_theme_constant_override("v_separation", 4)
+	scene_overlay.add_child(dpad_pad)
+	var dpad := dpad_pad
 	# Row 1: (empty) / up / (empty); row 2: left / centre / right;
 	# row 3: (empty) / down / (empty).
 	var dpad_layout := ["", "t", "", "l", "", "r", "", "d", ""]
@@ -453,6 +475,16 @@ func _build_ui() -> void:
 			dpad_buttons[code] = button
 
 
+
+	# Anchor the pad to the scene's bottom-right corner, 12 px off the
+	# gold frame. Its size is fixed by the buttons, so these offsets
+	# pin it there on every window size.
+	var dsize := dpad.get_combined_minimum_size()
+	dpad.set_anchors_preset(PRESET_BOTTOM_RIGHT)
+	dpad.offset_left = -(dsize.x + 12)
+	dpad.offset_top = -(dsize.y + 12)
+	dpad.offset_right = -12
+	dpad.offset_bottom = -12
 
 	# Serif fonts (Noto Serif Display for the hero title, Noto Serif
 	# for dialog text — both with full Cyrillic) activate
@@ -540,22 +572,29 @@ func _door_texture() -> Texture2D:
 		return door_texture
 	var s := 256
 	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+	img.fill(Color(0, 0, 0, 0))
 	var frame := Color(0.29, 0.18, 0.10, 1)
 	var wood := Color(0.48, 0.29, 0.15, 1)
 	var wood_light := Color(0.52, 0.33, 0.18, 1)
 	var seam := Color(0.37, 0.22, 0.11, 1)
 	var panel_edge := Color(0.37, 0.22, 0.11, 1)
-	img.fill(frame)
-	_fill_rect(img, 14, 14, 242, 242, wood)
+	# The door leaf is narrower than its cell (middle 60%, full
+	# height) and the rest of the canvas stays transparent: the same
+	# sprite serves both orientations — over bricks in a horizontal
+	# wall, alone (frame-coloured cell behind it) in a vertical wall.
+	var dx0 := 51
+	var dx1 := 205
+	_fill_rect(img, dx0, 0, dx1, s, frame)
+	_fill_rect(img, dx0 + 14, 14, dx1 - 14, 242, wood)
 	# Vertical planks.
-	for x in [56, 98, 140, 182]:
+	for x in [88, 111, 135, 158]:
 		_fill_rect(img, x, 14, x + 2, 242, seam)
 	# Two recessed panels with a lighter face.
 	for py0 in [30, 138]:
-		_fill_rect(img, 34, py0, 222, py0 + 84, panel_edge)
-		_fill_rect(img, 38, py0 + 4, 218, py0 + 80, wood_light)
+		_fill_rect(img, 76, py0, 180, py0 + 84, panel_edge)
+		_fill_rect(img, 78, py0 + 4, 178, py0 + 80, wood_light)
 	# Brass knob.
-	var kx := 206
+	var kx := 171
 	var ky := 128
 	for py in range(ky - 10, ky + 11):
 		for px in range(kx - 10, kx + 11):
@@ -614,7 +653,11 @@ func _font_scale() -> float:
 	var w := get_viewport_rect().size.x
 	if w <= 0:
 		return 1.0
-	return clamp(w / 1000.0, 1.15, 1.6)
+	# Phones (1080 device px) sit at the 1.15 floor, which reads fine
+	# there; wide desktops used to reach 1.6 (dialog 40 px at 1920),
+	# which reads too big, so the cap is 1.3 (dialog 32 px at 1920,
+	# about the pre-bump size) and the ramp is gentler.
+	return clamp(w / 1400.0, 1.15, 1.3)
 
 
 func _scaled(base: int) -> int:
@@ -675,6 +718,10 @@ func _update_layout_mode() -> void:
 		sidebar.size_flags_vertical = SIZE_EXPAND_FILL
 		sidebar.size_flags_stretch_ratio = 0.9
 		game_row.size_flags_stretch_ratio = 1.2
+		# The square scene cap is wide-mode only; in the stacked
+		# layout the scene panel fills the row's full width again.
+		scene_panel.size_flags_horizontal = SIZE_EXPAND_FILL
+		scene_panel.custom_minimum_size = Vector2(0, 0)
 	else:
 		if sidebar.get_parent() == vbox:
 			vbox.remove_child(sidebar)
@@ -685,12 +732,26 @@ func _update_layout_mode() -> void:
 		sidebar.size_flags_vertical = SIZE_EXPAND_FILL
 		sidebar.size_flags_stretch_ratio = 1.0
 		game_row.size_flags_stretch_ratio = 1.0
+		# The panel's width cap itself is set by _apply_cell_size.
+		scene_panel.size_flags_horizontal = SIZE_SHRINK_CENTER
 	call_deferred("_apply_cell_size")
 
 
 func _apply_cell_size() -> void:
 	if scene_grid == null or scene_panel == null or scene_cols <= 0 or scene_rows <= 0:
 		return
+	# Wide windows only: cap the scene panel at a square (its height),
+	# so on a wide monitor it does not stretch across the whole width
+	# and push the sidebar far to the right. The sidebar then sits
+	# right next to the scene; the leftover width stays empty on the
+	# far right. A changed cap re-runs this deferred, so the cell size
+	# below is always computed from the panel's final size.
+	if not layout_narrow and game_row != null and sidebar != null:
+		var avail_w: float = game_row.size.x - SIDEBAR_WIDTH - game_row.get_theme_constant("separation")
+		var target_w: float = min(avail_w, scene_panel.size.y)
+		if target_w > 0 and scene_panel.custom_minimum_size.x != target_w:
+			scene_panel.custom_minimum_size = Vector2(target_w, 0)
+			call_deferred("_apply_cell_size")
 	var cell := FALLBACK_CELL
 	var avail := scene_panel.size
 	if avail.x > 0 and avail.y > 0:
@@ -856,6 +917,21 @@ func _refresh() -> void:
 				cell.add_child(brick)
 				continue
 			if not is_player and emoji == "🚪":
+				# A door in a horizontal wall (wall cells left and
+				# right) gets the brick texture underneath, so the
+				# wall reads as continuing past the narrow door on
+				# both sides; a door in a vertical wall gets just
+				# the narrow door. One door sprite serves both.
+				# (A door at the window's edge reads as vertical
+				# until the window shifts and its neighbours appear.)
+				var wall_left: bool = x > 0 and tiles[y][x - 1] == "⬛️"
+				var wall_right: bool = x + 1 < tiles[y].size() and tiles[y][x + 1] == "⬛️"
+				if wall_left and wall_right:
+					var brick := TextureRect.new()
+					brick.texture = _brick_texture()
+					brick.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+					brick.stretch_mode = TextureRect.STRETCH_SCALE
+					cell.add_child(brick)
 				var door := TextureRect.new()
 				door.texture = _door_texture()
 				door.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -865,13 +941,22 @@ func _refresh() -> void:
 			if not is_player and emoji in ["🕳", "▫️", "✖️"]:
 				continue
 			if is_player:
-				var frames := _sprite_frames(SPRITES.get(dlg_hero, "toshik"))
+				var hero_name: String = SPRITES.get(dlg_hero, "toshik")
+				var frames := _sprite_frames(hero_name)
 				if frames.size() > 0:
 					var sprite := TextureRect.new()
 					sprite.texture = frames[0]
 					sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 					sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-					cell.add_child(sprite)
+					# Slightly smaller than the cell, like every other
+					# character (see SPRITE_SCALE): full height puts
+					# the head exactly on the cell border.
+					var hs: float = SPRITE_SCALE.get(hero_name, CHAR_SPRITE_SCALE)
+					var hwrap := CenterContainer.new()
+					sprite.custom_minimum_size = Vector2(FALLBACK_CELL * hs, FALLBACK_CELL * hs)
+					hwrap.add_child(sprite)
+					cell.add_child(hwrap)
+					scaled_sprites.append({"node": sprite, "scale": hs})
 					if frames.size() > 1:
 						animated_tiles.append({"node": sprite, "frames": frames, "interval": 0.35, "elapsed": 0.0, "idx": 0})
 				else:
@@ -897,17 +982,19 @@ func _refresh() -> void:
 							wrap.add_child(sprite)
 							cell.add_child(wrap)
 							small_sprites.append({"node": sprite, "cell": cell})
-						elif sprite_name in SPRITE_SCALE:
-							# Scaled down, centered in its cell; the
-							# exact size is fixed up in _apply_cell_size.
-							var s: float = SPRITE_SCALE[sprite_name]
+						elif sprite_name == "fire":
+							cell.add_child(sprite)
+						else:
+							# Characters: scaled down, centered in
+							# its cell; the exact size is fixed up in
+							# _apply_cell_size. Default 0.9, with
+							# SPRITE_SCALE overrides (zags 0.8).
+							var s: float = SPRITE_SCALE.get(sprite_name, CHAR_SPRITE_SCALE)
 							var swrap := CenterContainer.new()
 							sprite.custom_minimum_size = Vector2(FALLBACK_CELL * s, FALLBACK_CELL * s)
 							swrap.add_child(sprite)
 							cell.add_child(swrap)
 							scaled_sprites.append({"node": sprite, "scale": s})
-						else:
-							cell.add_child(sprite)
 						if frames.size() > 1:
 							var interval := 0.18 if sprite_name == "fire" else 0.35
 							animated_tiles.append({"node": sprite, "frames": frames, "interval": interval, "elapsed": 0.0, "idx": 0})
@@ -983,6 +1070,9 @@ func _refresh() -> void:
 			button.pressed.connect(_on_answer.bind(answer))
 			answers_box.add_child(button)
 	dpad_block.visible = has_move
+	# The arrow pad hides with the block when a dialog offers no moves.
+	if dpad_pad != null:
+		dpad_pad.visible = has_move
 	for code in dpad_buttons:
 		var found := false
 		for answer in answers:
