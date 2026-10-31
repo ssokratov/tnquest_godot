@@ -143,11 +143,12 @@ const SPRITES := {
 	"T": "crowd", "G": "genich", "R": "repa", "o": "okusheva",
 	# Ending cast in the original ZAGS (digits reuse existing sets;
 	# the engine maps them through the emoji fallback, so no new
-	# art is needed): 1 Toshik as an NPC, 2 the registry worker
+	# art is needed): 1 Toshik the groom, 2 the registry worker
 	# (her own zags set), 3 Kolyan, 7 Sedosh, 8 Yakov (typo line),
-	# 9 Sokrat, 0 Tolik (generic crowd set).
-	"1": "toshik", "2": "zags", "3": "kolyan", "7": "sedosh",
-	"8": "jacob", "9": "sokrat", "0": "crowd",
+	# 9 Sokrat, 0 Repa, 4 Zhenich, 5 the crowd.
+	"1": "toshik", "2": "zags", "3": "kolyan", "4": "genich",
+	"5": "crowd", "7": "sedosh", "8": "jacob", "9": "sokrat",
+	"0": "repa",
 	"F": "fire", "M": "monocle", "f": "extinguisher", "b": "boots",
 	"?": "key", "v": "shoe", "z": "taxofon",
 }

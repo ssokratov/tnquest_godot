@@ -3655,7 +3655,47 @@
           "icon": "Z"
          }
         },
-        "char": "0"
+        "char": "1"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "right",
+         "of": {
+          "icon": "Z"
+         }
+        },
+        "char": "5"
+       },
+       {
+        "op": "replace",
+        "icon": "M",
+        "char": "-"
+       },
+       {
+        "op": "replace",
+        "icon": "v",
+        "char": "-"
+       },
+       {
+        "op": "replace",
+        "icon": "f",
+        "char": "-"
+       },
+       {
+        "op": "replace",
+        "icon": "П",
+        "char": "-"
+       },
+       {
+        "op": "replace",
+        "icon": "п",
+        "char": "-"
+       },
+       {
+        "op": "replace",
+        "icon": "R",
+        "char": "-"
        },
        {
         "op": "replace",
@@ -3685,19 +3725,41 @@
        {
         "op": "replace_at",
         "at": {
-         "move": "up",
+         "move": "down",
          "of": {
-          "initial_icon": "M"
+          "move": "down",
+          "of": {
+           "initial_icon": "M"
+          }
          }
         },
-        "char": "1"
+        "char": "0"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "right",
+         "of": {
+          "move": "down",
+          "of": {
+           "move": "down",
+           "of": {
+            "initial_icon": "M"
+           }
+          }
+         }
+        },
+        "char": "4"
        }
       ]
      },
      "move_to_pos": {
       "move": "right",
       "of": {
-       "icon": "1"
+       "move": "up",
+       "of": {
+        "initial_icon": "M"
+       }
       }
      }
     }
@@ -3718,20 +3780,6 @@
    ],
    "player_icon": "N"
   },
-  "FinalTolik": {
-   "name": "FinalTolik",
-   "story": "nastya",
-   "message": "_Работница ЗАГСа_: Объявляю Вас Мужем и Женой. Конец.",
-   "display_map": true,
-   "map_icon": "0",
-   "answers": [
-    {
-     "message": "Конец",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
   "FinalWorker": {
    "name": "FinalWorker",
    "story": "nastya",
@@ -3741,20 +3789,6 @@
    "answers": [
     {
      "message": "Конец",
-     "move_to_dialog": "MapNastya"
-    }
-   ],
-   "player_icon": "N"
-  },
-  "CongratsToshik": {
-   "name": "CongratsToshik",
-   "story": "nastya",
-   "message": "_Тошик_: Поздравляю!",
-   "display_map": true,
-   "map_icon": "1",
-   "answers": [
-    {
-     "message": "Спасибочки",
      "move_to_dialog": "MapNastya"
     }
    ],
@@ -3794,6 +3828,62 @@
    "message": "_Седошенко_: Поздравляю!",
    "display_map": true,
    "map_icon": "7",
+   "answers": [
+    {
+     "message": "Спасибочки",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "FinalToshik": {
+   "name": "FinalToshik",
+   "story": "nastya",
+   "message": "_Работница ЗАГСа_: Объявляю Вас Мужем и Женой. Конец.",
+   "display_map": true,
+   "map_icon": "1",
+   "answers": [
+    {
+     "message": "Конец",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsRepa": {
+   "name": "CongratsRepa",
+   "story": "nastya",
+   "message": "_Репа_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "0",
+   "answers": [
+    {
+     "message": "Спасибочки",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsZhenich": {
+   "name": "CongratsZhenich",
+   "story": "nastya",
+   "message": "_Женич_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "4",
+   "answers": [
+    {
+     "message": "Спасибочки",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "CongratsCrowd": {
+   "name": "CongratsCrowd",
+   "story": "nastya",
+   "message": "_Толпа_: Поздравляю!",
+   "display_map": true,
+   "map_icon": "5",
    "answers": [
     {
      "message": "Спасибочки",
@@ -3901,11 +3991,13 @@
   "FoundRoad",
   "Akusheva1",
   "CongratsYakov",
-  "FinalTolik",
   "FinalWorker",
-  "CongratsToshik",
   "CongratsKolyan",
   "CongratsSokrat",
-  "CongratsSedosh"
+  "CongratsSedosh",
+  "FinalToshik",
+  "CongratsRepa",
+  "CongratsZhenich",
+  "CongratsCrowd"
  ]
 }
