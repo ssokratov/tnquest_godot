@@ -100,7 +100,10 @@ const MOVE_KEYS := {
 # Pickup items render at half cell size; fire stays full; characters
 # render at CHAR_SPRITE_SCALE (see SPRITE_SCALE) so their heads clear
 # the cell edge.
-const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe", "taxofon"]
+const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe"]
+# Big static items: a phone booth is furniture, not a pocket item —
+# it gets character height but never squashes like a character.
+const BIG_ITEM_SPRITES := {"taxofon": 0.9}
 # Per-sprite display scale in a scene cell (1.0 = full cell). Zags
 # fills her canvas edge to edge, so she reads a third taller than the
 # other characters; 0.8 brings her in line with them. Every other
@@ -109,7 +112,7 @@ const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe", "taxof
 # sit exactly on the cell border and read as cut off, and the 12 px
 # frame difference hops the figure; a 0.9 scale leaves a 5% margin
 # that absorbs the hop.
-const SPRITE_SCALE := {"zags": 0.8}
+const SPRITE_SCALE := {"zags": 0.8, "kolyan": 0.7}
 const CHAR_SPRITE_SCALE := 0.9
 # Map character -> sprite set in assets/sprites/ (<name>_0.png, _1, _2).
 const SPRITES := {
@@ -199,6 +202,16 @@ func _style_button(button: Button) -> void:
 	button.custom_minimum_size = ms
 
 
+func _pad_button_sides(button: Button, pad: int) -> void:
+	# StyleBoxFlat content margins are per state; bump all three so
+	# the text stops hugging the gold border.
+	for state in ["normal", "hover", "pressed"]:
+		var sb := button.get_theme_stylebox(state) as StyleBoxFlat
+		if sb != null:
+			sb.content_margin_left = pad
+			sb.content_margin_right = pad
+
+
 func _try_font(path: String) -> FontFile:
 	# Serif fonts activate automatically once the TTFs are in
 	# res://assets/fonts/; until then the default font is used, so a
@@ -230,20 +243,22 @@ func _parchment_style() -> StyleBoxTexture:
 		for k in range(2):
 			img.set_pixel(16 + k, y, GOLD)
 			img.set_pixel(239 - k, y, GOLD)
+	# Corner flourishes: two intersecting rings (wedding rings for
+	# the invitation theme) instead of diamonds, which read as
+	# squashed rhombi whenever the frame is compressed. Both rings
+	# stay inside the 48 px 9-slice corner, so they never distort.
 	var corners: Array = [[30, 30, 1, 1], [225, 30, -1, 1], [30, 225, 1, -1], [225, 225, -1, -1]]
 	for c in corners:
 		var cx: int = c[0]
 		var cy: int = c[1]
 		var sx: int = c[2]
 		var sy: int = c[3]
-		for dx in range(-5, 6):
-			for dy in range(-5, 6):
-				if abs(dx) + abs(dy) <= 5:
-					img.set_pixel(cx + dx, cy + dy, GOLD)
-		for dx in range(-2, 3):
-			for dy in range(-2, 3):
-				if dx * dx + dy * dy <= 4:
-					img.set_pixel(cx + sx * 13 + dx, cy + sy * 13 + dy, GOLD)
+		for ring in [Vector2i(cx, cy), Vector2i(cx + sx * 8, cy + sy * 8)]:
+			for dx in range(-9, 10):
+				for dy in range(-9, 10):
+					var dist: float = sqrt(float(dx * dx + dy * dy))
+					if abs(dist - 8.0) <= 1.0:
+						img.set_pixel(ring.x + dx, ring.y + dy, GOLD)
 	var tex := ImageTexture.create_from_image(img)
 	var style := StyleBoxTexture.new()
 	style.texture = tex
@@ -294,6 +309,7 @@ func _build_ui() -> void:
 	reset_toshik_button.focus_mode = FOCUS_NONE
 	reset_toshik_button.add_theme_font_size_override("font_size", 20)
 	_style_button(reset_toshik_button)
+	_pad_button_sides(reset_toshik_button, 18)
 	reset_toshik_button.pressed.connect(_on_reset_toshik)
 	header.add_child(reset_toshik_button)
 	reset_nastya_button = Button.new()
@@ -301,6 +317,7 @@ func _build_ui() -> void:
 	reset_nastya_button.focus_mode = FOCUS_NONE
 	reset_nastya_button.add_theme_font_size_override("font_size", 20)
 	_style_button(reset_nastya_button)
+	_pad_button_sides(reset_nastya_button, 18)
 	reset_nastya_button.pressed.connect(_on_reset_nastya)
 	header.add_child(reset_nastya_button)
 	vbox.add_child(header)
@@ -751,7 +768,10 @@ func _update_layout_mode() -> void:
 		if sidebar.get_parent() != game_row:
 			game_row.add_child(sidebar)
 		sidebar.custom_minimum_size = Vector2(SIDEBAR_WIDTH, 0)
-		sidebar.size_flags_horizontal = SIZE_FILL
+		# The dialog zone takes all leftover row width on desktop:
+		# long Nastya dialogs wrap into fewer lines and stop
+		# scrolling the sidebar, instead of squeezing into 380 px.
+		sidebar.size_flags_horizontal = SIZE_EXPAND_FILL
 		sidebar.size_flags_vertical = SIZE_EXPAND_FILL
 		sidebar.size_flags_stretch_ratio = 1.0
 		game_row.size_flags_stretch_ratio = 1.0
@@ -945,10 +965,15 @@ func _refresh() -> void:
 			var emoji: String = tiles[y][x]
 			if emoji == "✖️":
 				fog_cells.append(Vector2i(x, y))
+			# Neighbours come from the full map, not just the visible
+			# window: a door at the window's edge otherwise reads as
+			# vertical until the window shifts and its neighbours
+			# appear (the start corridor door showed no bricks for
+			# exactly this reason, although its wall is horizontal).
 			var same := func(nx: int, ny: int) -> bool:
-				if ny < 0 or ny >= tiles.size() or nx < 0 or nx >= tiles[ny].size():
-					return false
-				return tiles[ny][nx] == emoji
+				var mx := engine.pos.x + nx - centre
+				var my := engine.pos.y + ny - centre
+				return engine.emoji_at(mx, my) == emoji
 			cell.add_theme_stylebox_override("panel", _cell_style(
 				emoji, is_player,
 				same.call(x, y - 1), same.call(x, y + 1),
@@ -971,10 +996,11 @@ func _refresh() -> void:
 				# wall reads as continuing past the narrow door on
 				# both sides; a door in a vertical wall gets just
 				# the narrow door. One door sprite serves both.
-				# (A door at the window's edge reads as vertical
-				# until the window shifts and its neighbours appear.)
-				var wall_left: bool = x > 0 and tiles[y][x - 1] == "⬛️"
-				var wall_right: bool = x + 1 < tiles[y].size() and tiles[y][x + 1] == "⬛️"
+				# Neighbours come from the full map: a door at the
+				# window's edge used to read as vertical until the
+				# window shifted and its neighbours appeared.
+				var wall_left: bool = engine.emoji_at(engine.pos.x + x - centre - 1, engine.pos.y + y - centre) == "⬛️"
+				var wall_right: bool = engine.emoji_at(engine.pos.x + x - centre + 1, engine.pos.y + y - centre) == "⬛️"
 				if wall_left and wall_right:
 					var brick := TextureRect.new()
 					brick.texture = _brick_texture()
@@ -1034,6 +1060,13 @@ func _refresh() -> void:
 							small_sprites.append({"node": sprite, "cell": cell})
 						elif sprite_name == "fire":
 							cell.add_child(sprite)
+						elif sprite_name in BIG_ITEM_SPRITES:
+							var bs: float = BIG_ITEM_SPRITES[sprite_name]
+							var bwrap := CenterContainer.new()
+							sprite.custom_minimum_size = Vector2(FALLBACK_CELL * bs, FALLBACK_CELL * bs)
+							bwrap.add_child(sprite)
+							cell.add_child(bwrap)
+							scaled_sprites.append({"node": sprite, "scale": bs})
 						else:
 							# Characters: scaled down, centered in
 							# its cell; the exact size is fixed up in
@@ -1047,11 +1080,11 @@ func _refresh() -> void:
 							scaled_sprites.append({"node": sprite, "scale": s})
 						# Fire keeps flickering through its frames;
 						# characters squash instead of hopping.
-						# (Items stay static.)
+						# (Items and big items stay static.)
 						if sprite_name == "fire":
 							if frames.size() > 1:
 								animated_tiles.append({"node": sprite, "frames": frames, "interval": 0.18, "elapsed": 0.0, "idx": 0})
-						elif sprite_name not in ITEM_SPRITES:
+						elif sprite_name not in ITEM_SPRITES and sprite_name not in BIG_ITEM_SPRITES:
 							squash_sprites.append({"node": sprite, "phase": squash_sprites.size() * 0.9})
 					else:
 						_add_emoji_cell(cell, tiles[y][x])

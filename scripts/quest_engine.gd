@@ -175,6 +175,17 @@ func visible_tiles() -> Array:
 	return rows
 
 
+func emoji_at(map_x: int, map_y: int) -> String:
+	# Emoji of a full-map cell, for UI code that needs true
+	# neighbours (a door at the window's edge must see the wall
+	# beyond the window). Out-of-bounds reads as wall, exactly
+	# like visible_tiles renders it.
+	var cell := Vector2i(map_x, map_y)
+	if not _in_bounds(cell):
+		return _emoji("#")
+	return _emoji(_cell(cell))
+
+
 # --- internals ---------------------------------------------------------------
 
 func _eval_cond(cond: Dictionary) -> bool:
