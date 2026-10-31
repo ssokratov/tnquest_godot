@@ -1026,6 +1026,19 @@ func _update_dialog_expansion(instant: bool = false) -> void:
 	if dialog_expand_tween != null and dialog_expand_tween.is_valid():
 		dialog_expand_tween.kill()
 	if want:
+		# Pin the scene row's height before the sidebar leaves the
+		# vbox: without this, the row (the only expanding child
+		# left) grows to the full vbox height, and the centred grid
+		# jumps down (a big beige indent appears above the map)
+		# for the whole time the sheet is up, then jumps back on
+		# collapse. The pin equals the settled stacked height, so
+		# the scene behind the sheet does not move at all; it is
+		# released in _finish_dialog_collapse. This also fixes the
+		# photo-dialog softlock: a photo opened from the sheet
+		# used to lock the grown panel tall (its minimum tracks
+		# the panel size), pushing the sidebar off-screen.
+		game_row.custom_minimum_size = Vector2(game_row.custom_minimum_size.x, game_row.size.y)
+		game_row.size_flags_vertical = SIZE_FILL
 		var target_top := game_row.get_global_rect().position.y
 		if sidebar.get_parent() != self:
 			dialog_expand_from_top = sidebar.get_global_rect().position.y
@@ -1064,6 +1077,11 @@ func _finish_dialog_collapse() -> void:
 	if sidebar.get_parent() == self:
 		remove_child(sidebar)
 		vbox.add_child(sidebar)
+	# Release the pin set when the sheet expanded: the row goes
+	# back to sharing the vbox by ratio (which equals the pin,
+	# so releasing it moves nothing).
+	game_row.custom_minimum_size = Vector2(game_row.custom_minimum_size.x, 0)
+	game_row.size_flags_vertical = SIZE_EXPAND_FILL
 	dialog_expanded = false
 	call_deferred("_apply_cell_size")
 
