@@ -1,0 +1,57 @@
+# Builds the Godot web export and deploys it to GitHub Pages.
+# Godot 4.3+ exports single-threaded web builds by default, which GitHub
+# Pages can serve without COOP/COEP headers (Pages does not send them).
+# First run: enable Pages in repo Settings > Pages > Build and deployment
+# > Source: GitHub Actions, then re-run this workflow if needed.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download Godot 4.7.2 and export templates
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
+          curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
+          unzip -q godot.zip
+          chmod +x Godot_v4.7.2-stable_linux.x86_64
+          curl -sL -o templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
+          unzip -q templates.tpz -d /tmp/godot-templates
+          cp -r /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+
+      - name: Export web build
+        # Godot does not create the output directory itself.
+        run: |
+          mkdir -p build/web
+          ./Godot_v4.7.2-stable_linux.x86_64 --headless --export-release "Web" build/web/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
