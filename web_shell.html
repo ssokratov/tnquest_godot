@@ -60,6 +60,13 @@ body {
 	background: #6b4d33;
 	border: 2px solid #c79e47;
 	border-radius: 8px;
+	/* The bar stretches to the game's tall input row, so the
+	   label must be centred explicitly: a plain <button> can
+	   sit off-centre once flex stretching makes it taller
+	   than its content. */
+	display: flex;
+	align-items: center;
+	justify-content: center;
 }
 
 #status, #status-splash, #status-progress {
