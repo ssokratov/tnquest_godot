@@ -466,10 +466,14 @@ func _build_ui() -> void:
 	sidebar_box.add_child(dialog_card)
 	_build_dialog_frame(dialog_card)
 	var dialog_margin := MarginContainer.new()
-	dialog_margin.add_theme_constant_override("margin_left", 16)
-	dialog_margin.add_theme_constant_override("margin_right", 16)
-	dialog_margin.add_theme_constant_override("margin_top", 14)
-	dialog_margin.add_theme_constant_override("margin_bottom", 14)
+	# The flat parchment background carries no content margins (the
+	# old 9-slice contributed 20 px), so the margin alone must inset
+	# the text: 36/34 px restores the old text position and clears
+	# the frame's inner line (16-18 px) with room to spare.
+	dialog_margin.add_theme_constant_override("margin_left", 36)
+	dialog_margin.add_theme_constant_override("margin_right", 36)
+	dialog_margin.add_theme_constant_override("margin_top", 34)
+	dialog_margin.add_theme_constant_override("margin_bottom", 34)
 	dialog_card.add_child(dialog_margin)
 	dialog_label = RichTextLabel.new()
 	dialog_label.bbcode_enabled = true
@@ -754,9 +758,9 @@ func _font_scale() -> float:
 		return 1.0
 	# Phones (1080 device px) sit at the 1.15 floor, which reads fine
 	# there; wide desktops used to reach 1.6 (dialog 40 px at 1920),
-	# which reads too big, so the cap is 1.3 (dialog 32 px at 1920,
-	# about the pre-bump size) and the ramp is gentler.
-	return clamp(w / 1400.0, 1.15, 1.3)
+	# which reads too big, so the cap is 1.2 (dialog 30 px at 1920)
+	# and the ramp is gentler.
+	return clamp(w / 1400.0, 1.15, 1.2)
 
 
 func _scaled(base: int) -> int:
