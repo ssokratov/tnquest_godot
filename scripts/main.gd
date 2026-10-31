@@ -302,34 +302,37 @@ func _build_ui() -> void:
 
 
 # --- procedural brick texture (walls) --------------------------------------
-# 256x256, four courses per cell, half-brick offset on odd rows, so the
-# pattern tiles seamlessly across neighbouring wall cells (each cell
-# stretches the same square texture). Small bricks, thin mortar lines
-# and only a whisper of per-brick shade variation keep the wall neat
-# and even instead of chunky; the variation is a hash of
-# parity/course/index, so it never flickers between refreshes.
-var brick_textures := {}
+# 256x256, eight courses per cell, bricks 64x32 (true brick rectangles,
+# half the height of the previous square version). Running bond: every
+# course is offset by half a brick relative to its neighbours, inside
+# the tile as well as across tiles — the old version only offset
+# alternate tile rows, so joints lined up into a grid inside each
+# tile and the wall read as plain squares. The offset depends on
+# course parity alone, so the pattern continues seamlessly over cell
+# borders in both directions with a single texture. Shade variation
+# is a hash of course/index, so it never flickers between refreshes.
+var brick_texture_cache: Texture2D = null
 
 
-func _brick_texture(parity: int) -> Texture2D:
-	if parity in brick_textures:
-		return brick_textures[parity]
+func _brick_texture() -> Texture2D:
+	if brick_texture_cache != null:
+		return brick_texture_cache
 	var s := 256
 	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
 	img.fill(SCENE_BG)
-	var course_h := 64
+	var course_h := 32
 	var brick_w := 64
 	var gap := 4
-	for course in 4:
+	for course in 8:
 		var y0 := course * course_h + gap / 2
 		var y1 := (course + 1) * course_h - gap / 2
-		var offset := 0 if parity == 0 else -brick_w / 2
+		var offset := 0 if course % 2 == 0 else -brick_w / 2
 		var idx := 0
 		var x := offset
 		while x < s:
 			var x0 := x + gap / 2
 			var x1 := x + brick_w - gap / 2
-			var shade := 0.97 + 0.03 * ((parity * 7 + course * 3 + idx) % 3)
+			var shade := 0.97 + 0.03 * ((course * 3 + idx) % 3)
 			var col := Color(BRICK_COLOR.r * shade, BRICK_COLOR.g * shade, BRICK_COLOR.b * shade, 1)
 			for py in range(y0, y1):
 				for px in range(max(x0, 0), min(x1, s)):
@@ -337,7 +340,7 @@ func _brick_texture(parity: int) -> Texture2D:
 			idx += 1
 			x += brick_w
 	var tex := ImageTexture.create_from_image(img)
-	brick_textures[parity] = tex
+	brick_texture_cache = tex
 	return tex
 
 
@@ -673,13 +676,13 @@ func _refresh() -> void:
 				same.call(x, y - 1), same.call(x, y + 1),
 				same.call(x - 1, y), same.call(x + 1, y)))
 			scene_grid.add_child(cell)
-			# Walls get a brick texture child (row parity alternates
-			# the course offset); roads, bare floor, doors and marks
-			# are pure background shapes: nothing is drawn inside them
+			# Walls get a brick texture child (running bond, offset
+			# per course); roads, bare floor, doors and marks are
+			# pure background shapes: nothing is drawn inside them
 			# (their emoji are never rendered as text, so no tofu).
 			if not is_player and emoji == "⬛️":
 				var brick := TextureRect.new()
-				brick.texture = _brick_texture(y % 2)
+				brick.texture = _brick_texture()
 				brick.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 				brick.stretch_mode = TextureRect.STRETCH_SCALE
 				cell.add_child(brick)
