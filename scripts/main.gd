@@ -50,6 +50,7 @@ var modal_text: RichTextLabel
 var modal_answers: VBoxContainer
 
 var animated_tiles: Array = []
+var small_sprites: Array = []
 var anim_time := 0.0
 var arrow_icons := {}
 var scene_cols := 0
@@ -80,6 +81,8 @@ const MOVE_KEYS := {
 	KEY_LEFT: "l", KEY_A: "l",
 	KEY_RIGHT: "r", KEY_D: "r",
 }
+# Pickup items render at half cell size; characters (and fire) stay full.
+const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe", "taxofon"]
 # Map character -> sprite set in assets/sprites/ (<name>_0.png, _1, _2).
 const SPRITES := {
 	"O": "toshik", "N": "nastya", "Z": "zags", "J": "jacob",
@@ -466,6 +469,8 @@ func _apply_cell_size() -> void:
 		cell = max(cell, MIN_CELL)
 	for child in scene_grid.get_children():
 		child.custom_minimum_size = Vector2(cell, cell)
+	for entry in small_sprites:
+		entry["node"].custom_minimum_size = Vector2(cell / 2, cell / 2)
 
 
 func _set_fit_content(label: RichTextLabel) -> void:
@@ -599,6 +604,7 @@ func _refresh() -> void:
 	for child in scene_grid.get_children():
 		child.queue_free()
 	animated_tiles = []
+	small_sprites = []
 	var tiles: Array = engine.visible_tiles()
 	scene_cols = tiles[0].size()
 	scene_rows = tiles.size()
@@ -658,7 +664,16 @@ func _refresh() -> void:
 						sprite.texture = frames[0]
 						sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 						sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-						cell.add_child(sprite)
+						if sprite_name in ITEM_SPRITES:
+							# Half-size, centered in its cell; the
+							# exact size is fixed up in _apply_cell_size.
+							var wrap := CenterContainer.new()
+							sprite.custom_minimum_size = Vector2(FALLBACK_CELL / 2, FALLBACK_CELL / 2)
+							wrap.add_child(sprite)
+							cell.add_child(wrap)
+							small_sprites.append({"node": sprite, "cell": cell})
+						else:
+							cell.add_child(sprite)
 						if frames.size() > 1:
 							var interval := 0.18 if sprite_name == "fire" else 0.35
 							animated_tiles.append({"node": sprite, "frames": frames, "interval": interval, "elapsed": 0.0, "idx": 0})
