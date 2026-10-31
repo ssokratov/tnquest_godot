@@ -72,6 +72,44 @@ def decontaminate(im: Image.Image) -> Image.Image:
     return Image.fromarray(arr, "RGBA")
 
 
+def clear_gap_strips(im: Image.Image) -> Image.Image:
+    """Make trapped background strips transparent.
+
+    Background removal only clears white that touches the image
+    border, so a background strip closed off inside the silhouette
+    survives: between the legs, between arm and torso, a coat slit.
+    On the dark scene it reads as a bright white bar. Clear a
+    near-white component only when it is tall and narrow, large
+    enough not to be a lace or button, thin, and in the lower part
+    of the sprite. The lower-part guard is load-bearing: chest-level
+    strips of the same shape are shirt fronts (genich's shirt left
+    of his tie, repa's dress-shirt front) and must survive.
+    """
+    arr = np.array(im).copy()
+    alpha = arr[..., 3]
+    opaque = alpha > 128
+    if not opaque.any():
+        return im
+    rgb = arr[..., :3].astype(np.int16)
+    near_white = opaque & (rgb.min(axis=2) > 200) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 40)
+    if not near_white.any():
+        return im
+    lab, n = ndimage.label(near_white, structure=np.ones((3, 3), int))
+    thick = ndimage.distance_transform_edt(~(opaque & ~near_white))
+    h_img = arr.shape[0]
+    for i in range(1, n + 1):
+        comp = lab == i
+        if int(comp.sum()) < 150:
+            continue
+        ys, xs = np.where(comp)
+        w = xs.max() - xs.min() + 1
+        h = ys.max() - ys.min() + 1
+        if (w <= 16 and h >= 3 * w and thick[comp].max() <= 6.5
+                and ys.min() >= 0.45 * h_img):
+            arr[comp, 3] = 0
+    return Image.fromarray(arr, "RGBA")
+
+
 def split_columns(fg: np.ndarray, count: int, min_gap: int = 40) -> list:
     """Return x-intervals of `count` foreground groups, or equal split."""
     col_has = fg.any(axis=0)
@@ -115,6 +153,7 @@ def process(im: Image.Image, names: list, height: int, animated: bool):
         crop = crop.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
         scale = height / crop.height
         crop = crop.resize((max(1, round(crop.width * scale)), height), Image.NEAREST)
+        crop = clear_gap_strips(crop)
         crop.save(OUT / f"{name}_0.png")
         if animated:
             up = Image.new("RGBA", crop.size, (0, 0, 0, 0))
@@ -153,6 +192,7 @@ def main():
         crop = crop.crop((xs.min(), ys.min(), xs.max() + 1, ys.max() + 1))
         scale = 384 / crop.height
         crop = crop.resize((max(1, round(crop.width * scale)), 384), Image.NEAREST)
+        crop = clear_gap_strips(crop)
         crop.save(OUT / f"{name}.png")
         print(f"  {name}: {crop.size}")
     print(f"total: {len(list(OUT.glob('*.png')))} PNGs in {OUT}")

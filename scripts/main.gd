@@ -44,7 +44,6 @@ var feedback_label: Label
 var answers_box: VBoxContainer
 var dpad_block: VBoxContainer
 var dpad_buttons := {}
-var hint_label: Label
 var modal: Control
 var modal_image: TextureRect
 var modal_text: RichTextLabel
@@ -276,12 +275,7 @@ func _build_ui() -> void:
 			dpad.add_child(button)
 			dpad_buttons[code] = button
 
-	hint_label = Label.new()
-	hint_label.text = "Стрелки / WASD или кнопки — движение, когда оно предлагается. Прогресс сохраняется автоматически."
-	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.add_theme_font_size_override("font_size", 15)
-	hint_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	sidebar_box.add_child(hint_label)
+
 
 	_build_modal()
 	get_viewport().size_changed.connect(_on_viewport_resized)
@@ -350,7 +344,6 @@ func _refresh_fonts() -> void:
 	reset_button.add_theme_font_size_override("font_size", _scaled(20))
 	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(22))
 	modal_text.add_theme_font_size_override("normal_font_size", _scaled(22))
-	hint_label.add_theme_font_size_override("font_size", _scaled(15))
 	text_input.add_theme_font_size_override("font_size", _scaled(20))
 	submit_button.add_theme_font_size_override("font_size", _scaled(20))
 	feedback_label.add_theme_font_size_override("font_size", _scaled(16))
