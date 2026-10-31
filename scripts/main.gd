@@ -54,6 +54,11 @@ var text_input: LineEdit
 # be kept, or the engine's refcounting frees it.
 var native_input_active := false
 var native_answer_callback = null
+# Last screen rect the native bar was placed at (viewport coords):
+# the sidebar scrolls, resizes and the dialog sheet moves the card,
+# so _process re-places the bar whenever its slot's rect changes.
+var native_bar_rect := Rect2()
+var native_bar_placed := false
 var submit_button: Button
 var feedback_label: Label
 var answers_box: VBoxContainer
@@ -166,6 +171,15 @@ func _ready() -> void:
 
 func _process(delta: float) -> void:
 	anim_time += delta
+	# The native answer bar is an HTML overlay, so it does not
+	# follow Godot layout on its own: re-place it whenever its
+	# slot's screen rect moved (sidebar scroll, resize, dialog
+	# sheet expand/collapse, photo dialog layout). Cheap: one
+	# rect read per frame, one JS call only on a real move.
+	if native_input_active:
+		var rect := input_row.get_global_rect()
+		if not native_bar_placed or rect.position.distance_to(native_bar_rect.position) > 1.0 or rect.size.distance_to(native_bar_rect.size) > 1.0:
+			_place_native_answer_bar()
 	for tile in animated_tiles:
 		tile["elapsed"] += delta
 		if tile["elapsed"] >= tile["interval"]:
@@ -1609,24 +1623,60 @@ func _sync_native_answer_input() -> void:
 	# virtual keyboards on Android: focus opens, autocomplete runs,
 	# but nothing lands. The bar is shown only on touch devices
 	# (its JS returns false on desktops, keeping the LineEdit).
+	# The bar lives INSIDE the dialog card: the game's input row
+	# stays visible as the layout slot, and the HTML bar is placed
+	# over that exact slot (see _place_native_answer_bar) — a
+	# fixed top bar used to cover the dialog's question text.
 	# Non-web builds skip this entirely.
 	if not OS.has_feature("web"):
 		return
 	var window_obj = JavaScriptBridge.get_interface("window")
 	if window_obj == null:
 		native_input_active = false
+		native_bar_placed = false
 		input_row.visible = true
 		return
 	if input_block.visible:
 		var shown = window_obj.__tnShowAnswer()
 		native_input_active = shown == true
-		input_row.visible = not native_input_active
-		if native_input_active and get_viewport().gui_get_focus_owner() == text_input:
-			text_input.release_focus()
+		# The row stays visible either way: on desktop it IS the
+		# input; on mobile it is the slot the HTML bar covers
+		# (opaque, same rect, so the LineEdit never peeks out).
+		input_row.visible = true
+		if native_input_active:
+			if get_viewport().gui_get_focus_owner() == text_input:
+				text_input.release_focus()
+			# Layout has not run yet inside _refresh, so the
+			# slot's rect is only valid on the next frame.
+			call_deferred("_place_native_answer_bar")
+		else:
+			window_obj.__tnHideAnswer()
+			native_bar_placed = false
 	else:
 		window_obj.__tnHideAnswer()
 		native_input_active = false
+		native_bar_placed = false
 		input_row.visible = true
+
+
+func _place_native_answer_bar() -> void:
+	# Position the native bar over the input row's current screen
+	# rect (viewport coords + viewport size, so the shell can
+	# convert to CSS pixels across canvas scaling and DPR).
+	# Called deferred after _refresh and again from _process
+	# whenever the slot moves (sidebar scroll, resize, sheet).
+	if not OS.has_feature("web") or not native_input_active:
+		return
+	var window_obj = JavaScriptBridge.get_interface("window")
+	if window_obj == null:
+		return
+	var rect := input_row.get_global_rect()
+	if rect.size.x <= 0 or rect.size.y <= 0:
+		return
+	var vp := get_viewport().get_visible_rect().size
+	window_obj.__tnPlaceAnswer(rect.position.x, rect.position.y, rect.size.x, rect.size.y, vp.x, vp.y)
+	native_bar_rect = rect
+	native_bar_placed = true
 
 
 func _on_native_answer(args: Array) -> void:

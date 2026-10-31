@@ -29,14 +29,14 @@ body {
 
 /* Native answer bar (mobile web): a real HTML input, because
    Godot's own LineEdit drops composed virtual-keyboard text on
-   Android web. Fixed below the game's header (56 px clears it on
-   phones and tablets); hidden until the game shows it. */
+   Android web. It is NOT fixed to the top of the screen (that
+   covered the dialog's question): the game positions it over its
+   own input slot inside the dialog card via __tnPlaceAnswer, so
+   it sits exactly where the LineEdit would be, under the
+   question text. Hidden until the game shows it. */
 #tn-answer-bar {
 	display: none;
-	position: fixed;
-	left: 12px;
-	right: 12px;
-	top: 56px;
+	position: absolute;
 	z-index: 1000;
 	gap: 8px;
 }
@@ -167,7 +167,26 @@ body {
 		// autocomplete runs, but nothing lands in the field), so
 		// hidden-answer dialogs type here instead, and the value is
 		// handed back to the game through window.__tnAnswerCallback
-		// (set by the game at startup via JavaScriptBridge).
+		// (set by the game at startup via JavaScriptBridge). The bar
+		// lives inside the dialog card: the game places it over its
+		// input slot with __tnPlaceAnswer (viewport coordinates plus
+		// the viewport size, so canvas scaling and page offset are
+		// accounted for) and re-places it whenever that slot moves
+		// (sidebar scroll, resize, dialog sheet).
+		function __tnPlaceAnswer(x, y, w, h, vw, vh) {
+			var bar = document.getElementById('tn-answer-bar');
+			var canvas = document.getElementById('canvas');
+			if (!bar || !canvas || !vw || !vh) {
+				return;
+			}
+			var rect = canvas.getBoundingClientRect();
+			var scaleX = rect.width / vw;
+			var scaleY = rect.height / vh;
+			bar.style.left = (rect.left + x * scaleX) + 'px';
+			bar.style.top = (rect.top + y * scaleY) + 'px';
+			bar.style.width = (w * scaleX) + 'px';
+			bar.style.height = (h * scaleY) + 'px';
+		}
 		function __tnShowAnswer() {
 			// Desktops keep the game's LineEdit (physical keyboards
 			// work there); only touch devices get the native bar.
