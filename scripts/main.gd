@@ -600,14 +600,16 @@ func _arrow_icon(code: String) -> Texture2D:
 # --- responsive layout + scene scaling + font scaling -----------------------
 
 # Fixed sizes looked small on wide windows and on phones, so fonts grow
-# with the viewport width (1.0x up to 1000 px, 1.5x beyond 1500 px).
+# with the viewport width (1.15x up to 1000 px, 1.6x beyond 1500 px):
+# the raised floor keeps text readable on phones, where the viewport
+# is counted in device pixels and everything renders physically small.
 # Answer buttons are rebuilt on every refresh, so they pick the current
 # scale up at creation; static labels are re-scaled here on resize.
 func _font_scale() -> float:
 	var w := get_viewport_rect().size.x
 	if w <= 0:
 		return 1.0
-	return clamp(w / 1000.0, 1.0, 1.5)
+	return clamp(w / 1000.0, 1.15, 1.6)
 
 
 func _scaled(base: int) -> int:
@@ -617,18 +619,18 @@ func _scaled(base: int) -> int:
 func _refresh_fonts() -> void:
 	if hero_label == null:
 		return
-	hero_label.add_theme_font_size_override("font_size", _scaled(24))
-	reset_button.add_theme_font_size_override("font_size", _scaled(20))
-	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(22))
-	dialog_label.add_theme_font_size_override("bold_font_size", _scaled(22))
-	dialog_label.add_theme_font_size_override("italics_font_size", _scaled(22))
-	dialog_label.add_theme_font_size_override("bold_italics_font_size", _scaled(22))
-	text_input.add_theme_font_size_override("font_size", _scaled(20))
-	submit_button.add_theme_font_size_override("font_size", _scaled(20))
-	feedback_label.add_theme_font_size_override("font_size", _scaled(16))
+	hero_label.add_theme_font_size_override("font_size", _scaled(26))
+	reset_button.add_theme_font_size_override("font_size", _scaled(22))
+	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(25))
+	dialog_label.add_theme_font_size_override("bold_font_size", _scaled(25))
+	dialog_label.add_theme_font_size_override("italics_font_size", _scaled(25))
+	dialog_label.add_theme_font_size_override("bold_italics_font_size", _scaled(25))
+	text_input.add_theme_font_size_override("font_size", _scaled(22))
+	submit_button.add_theme_font_size_override("font_size", _scaled(22))
+	feedback_label.add_theme_font_size_override("font_size", _scaled(17))
 	for code in ["i", "j"]:
 		if code in dpad_buttons:
-			(dpad_buttons[code] as Button).add_theme_font_size_override("font_size", _scaled(18))
+			(dpad_buttons[code] as Button).add_theme_font_size_override("font_size", _scaled(20))
 
 
 func _notification(what: int) -> void:
@@ -953,7 +955,7 @@ func _refresh() -> void:
 			# whole sidebar and shrank the scene. Wrapping pins
 			# the sidebar at 380 px; only a window resize reflows.
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			button.add_theme_font_size_override("font_size", _scaled(20))
+			button.add_theme_font_size_override("font_size", _scaled(23))
 			_style_button(button)
 			button.pressed.connect(_on_answer.bind(answer))
 			answers_box.add_child(button)
