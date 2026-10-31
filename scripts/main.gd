@@ -705,12 +705,10 @@ func _apply_cell_size() -> void:
 		entry["node"].custom_minimum_size = Vector2(cell * s, cell * s)
 	if fog_overlay == null:
 		return
-	# Fog overlay: one dark column per run, from the run's top fog cell
-	# down to the scene panel's bottom edge, so the corridor descends
-	# into darkness with no end in sight. The overlay is grid-sized and
-	# centred like the grid; its children may extend past its bottom
-	# edge — nothing in the chain clips them — which also covers the
-	# panel's bottom gap in portrait windows.
+	# Fog overlay: one dark column per run, at most 2 cells tall and
+	# never past the grid's bottom edge. It used to run to the panel's
+	# bottom edge, which stuck out past the map into the panel's empty
+	# gap in tall portrait windows and looked like a stray stripe.
 	for child in fog_overlay.get_children():
 		fog_overlay.remove_child(child)
 		child.free()
@@ -720,14 +718,16 @@ func _apply_cell_size() -> void:
 	if fog_runs.is_empty():
 		return
 	var grid_h := scene_rows * cell
-	var origin_y := (scene_panel.size.y - grid_h) / 2.0
 	fog_overlay.custom_minimum_size = Vector2(scene_cols * cell, grid_h)
 	for run in fog_runs:
+		var h: int = min(2 * cell, grid_h - run["row"] * cell)
+		if h <= 0:
+			continue
 		var rect := Panel.new()
 		rect.mouse_filter = MOUSE_FILTER_IGNORE
 		rect.add_theme_stylebox_override("panel", _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 0))
 		rect.position = Vector2(run["col"] * cell, run["row"] * cell)
-		rect.size = Vector2(run["span"] * cell, scene_panel.size.y - (origin_y + run["row"] * cell))
+		rect.size = Vector2(run["span"] * cell, h)
 		fog_overlay.add_child(rect)
 
 
