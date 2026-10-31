@@ -211,31 +211,43 @@ func _style_button(button: Button) -> void:
 	button.custom_minimum_size = ms
 
 
+func _is_narrow_window() -> bool:
+	# The single narrow check for layout AND tap targets. Phones
+	# report the viewport in device pixels, so a portrait phone is
+	# 1080+ px wide and never trips the width threshold alone;
+	# portrait aspect catches it regardless of pixel density.
+	# Button sizes must use this, not the width alone, or a
+	# portrait phone gets the stacked layout with desktop-sized
+	# buttons (the 2026-10-31 bug: 56 px buttons on a phone).
+	var vp := get_viewport_rect().size
+	return vp.x < NARROW_WIDTH or vp.y > vp.x
+
+
 func _button_min_height() -> int:
-	# Narrow windows (phones in portrait) get taller tap targets;
+	# Narrow layout (phones in portrait) gets taller tap targets;
 	# desktops keep the 56 px standard.
-	if get_viewport_rect().size.x < NARROW_WIDTH:
+	if _is_narrow_window():
 		return 64
 	return 56
 
 
 func _dialog_button_min_height() -> int:
 	# Dialog-area buttons (answers, inventory/journal, submit) are
-	# much taller than the header buttons on narrow windows, where
+	# much taller than the header buttons in narrow layout, where
 	# the user reads them as the main controls: 132 px is close to
 	# double the old 76, for reliable tapping. Desktops keep 56.
-	if get_viewport_rect().size.x < NARROW_WIDTH:
+	if _is_narrow_window():
 		return 132
 	return 56
 
 
 func _dpad_button_size() -> int:
-	# Arrow buttons are square; much bigger on narrow windows (their
+	# Arrow buttons are square; much bigger in narrow layout (their
 	# icons scale via expand_icon): 112 px is close to double the
 	# old 64, and a 3x112 pad still fits a narrow scene panel.
 	# Wide keeps 52 wide; the height there stays the 56 floor
 	# from _button_min_height().
-	if get_viewport_rect().size.x < NARROW_WIDTH:
+	if _is_narrow_window():
 		return 112
 	return 52
 
@@ -921,11 +933,7 @@ func _on_viewport_resized() -> void:
 func _update_layout_mode() -> void:
 	if sidebar == null or game_row == null or vbox == null:
 		return
-	var vp := get_viewport_rect().size
-	# Phones report the viewport in device pixels, so a portrait phone
-	# is 1080+ px wide and never trips the width threshold; portrait
-	# aspect catches it regardless of pixel density.
-	var narrow := vp.x < NARROW_WIDTH or vp.y > vp.x
+	var narrow := _is_narrow_window()
 	if layout_init_done and narrow == layout_narrow:
 		return
 	layout_narrow = narrow
