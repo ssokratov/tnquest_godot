@@ -1,0 +1,3738 @@
+{
+ "map_rows": [
+  "##############",
+  "##############",
+  "##--Z--#######",
+  "##J---k#######",
+  "##----S#######",
+  "##K----#f-####",
+  "##-v---п--####",
+  "###П##########",
+  "##O-##########",
+  "##M-##########",
+  "##~~##########",
+  "##--##########",
+  "##--##########",
+  "##############",
+  "##############",
+  "###---########",
+  "###--UD#######",
+  "###---########",
+  "##############",
+  "##############",
+  "##############",
+  "%%%%%%%%%=====",
+  "%%%%%%%%%=====",
+  "%%TCc--%%z-R%%",
+  "%%TCcN-P----%%",
+  "%%TCc--%%%%%%%",
+  "%%%%%%%%%%%%%%",
+  "%%%%%%%%%%%%%%"
+ ],
+ "width": 14,
+ "height": 28,
+ "start_pos_toshik": [
+  2,
+  8
+ ],
+ "start_pos_nastya": [
+  5,
+  24
+ ],
+ "start_dialog": "StartToshik",
+ "starting_journal": [
+  "EnterHall"
+ ],
+ "emoji": {
+  "O": "🚶‍♂️",
+  "c": "👬",
+  "C": "👯‍♂️",
+  "T": "🕺",
+  "G": "🙋‍♂️",
+  "B": "🍷",
+  "P": "👮‍♂️",
+  "z": "☎️",
+  "o": "🆗",
+  "N": "💃🏼",
+  "-": "▫️",
+  "#": "⬛️",
+  "%": "⬛️",
+  "M": "🧐",
+  "П": "🚪",
+  "~": "✖️",
+  "v": "👠",
+  "R": "🤵",
+  "K": "👮‍♂️",
+  "J": "🎅",
+  "S": "👨‍💻",
+  "Z": "👩‍⚖️",
+  "k": "🙇‍♂️",
+  "U": "🙇‍♂️",
+  "=": "🕳",
+  "F": "🔥",
+  "f": "🧯",
+  "b": "👢",
+  "п": "🚪",
+  "D": "🚪",
+  "?": "🔑",
+  "l": "⬅️",
+  "t": "⬆️",
+  "r": "➡️",
+  "d": "⬇️",
+  "j": "📖",
+  "i": "💼"
+ },
+ "dialogs": {
+  "StartToshik": {
+   "name": "StartToshik",
+   "story": "toshik",
+   "message": "Тошик обнаруживает себя в длинном светлом коридоре. Впереди - массивная деревянная дверь. Сзади на полу лежит монокль.",
+   "answers": [
+    {
+     "message": "Дальше",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "MapToshik": {
+   "name": "MapToshik",
+   "story": "toshik",
+   "message": "_Перемещайтесь по карте, или выберите действие_",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryToshik"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalToshik"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "🚶‍♂️ идти к...",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "EnterHall"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "Kolyan"
+       }
+      }
+     },
+     "move_to_dialog": "MapMoveTo"
+    },
+    {
+     "message": "📞 набрать на цифры",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "FoundFear"
+    },
+    {
+     "message": "📞 позвонить Демьянову",
+     "available": {
+      "check": "IsOpen",
+      "name": "Demianov"
+     },
+     "move_to_dialog": "Demianov1"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "MapMoveTo": {
+   "name": "MapMoveTo",
+   "story": "toshik",
+   "message": "_Хорошо, куда пойдём?_",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "К работнице ЗАГСа",
+     "move_to_dialog": "ZagsWorker1",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "Z"
+      }
+     }
+    },
+    {
+     "message": "К Якову",
+     "move_to_dialog": "Jacob1",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "J"
+      }
+     }
+    },
+    {
+     "message": "К Коляну",
+     "move_to_dialog": "Kolyan1",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "k"
+      }
+     }
+    },
+    {
+     "message": "К Капитану",
+     "move_to_dialog": "Sedosh1",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "K"
+      }
+     }
+    },
+    {
+     "message": "К Сократу",
+     "available": {
+      "cond": "not",
+      "a": {
+       "check": "IsOpen",
+       "name": "FireAlarm"
+      }
+     },
+     "move_to_dialog": "Sokrat1",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "S"
+      }
+     }
+    },
+    {
+     "message": "В самое начало",
+     "move_to_pos": {
+      "initial_icon": {
+       "icon": "O"
+      }
+     }
+    },
+    {
+     "message": "<<<",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "InventoryToshik": {
+   "name": "InventoryToshik",
+   "story": "toshik",
+   "dynamic": true,
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "JournalToshik": {
+   "name": "JournalToshik",
+   "story": "toshik",
+   "dynamic": true,
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Glasses1": {
+   "name": "Glasses1",
+   "story": "toshik",
+   "message": "Под ногами лежит *монокль* в золотой оправе. Чуть не наступил.",
+   "display_map": true,
+   "map_icon": "M",
+   "answers": [
+    {
+     "message": "Поднять",
+     "move_to_dialog": "Glasses2",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Glasses"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Оставить",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Glasses2": {
+   "name": "Glasses2",
+   "story": "toshik",
+   "message": "Дорогая вещица. И удобная! Теперь я вижу немного дальше!",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryToshik"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalToshik"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "🚶‍♂️ идти к...",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "EnterHall"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "Kolyan"
+       }
+      }
+     },
+     "move_to_dialog": "MapMoveTo"
+    },
+    {
+     "message": "📞 набрать на цифры",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "FoundFear"
+    },
+    {
+     "message": "📞 позвонить Демьянову",
+     "available": {
+      "check": "IsOpen",
+      "name": "Demianov"
+     },
+     "move_to_dialog": "Demianov1"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "StartDoors1": {
+   "name": "StartDoors1",
+   "story": "toshik",
+   "message": "Перед вами высокая двойная дверь из белого дерева с резными узорами.",
+   "map_icon": "П",
+   "answers": [
+    {
+     "message": "Потянуть за ручку",
+     "move_to_dialog": "MapToshik",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Прочитать табличку",
+     "move_to_dialog": "StartDoors2"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "StartDoors2": {
+   "name": "StartDoors2",
+   "story": "toshik",
+   "message": "На красной ламинированной табличке переливаются 4 золотые буквы: *ЗАГС*.",
+   "answers": [
+    {
+     "message": "Решительно потянуть за ручку",
+     "move_to_dialog": "MapToshik",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Осмотреться",
+     "move_to_dialog": "StartDoors3"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "StartDoors3": {
+   "name": "StartDoors3",
+   "story": "toshik",
+   "message": "Дверь расположена в конце коридора. Вглядываясь вдаль вы не видите его начала. Вы ощущаете прилив одиночества и тоски.",
+   "answers": [
+    {
+     "message": "Потянуть за ручку двери",
+     "move_to_dialog": "MapToshik",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Замереть в нерешительности",
+     "move_to_dialog": "StartDoors4"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "StartDoors4": {
+   "name": "StartDoors4",
+   "story": "toshik",
+   "message": "Ничего не происходит. Хватит мять сиськи.",
+   "answers": [
+    {
+     "message": "Потянуть за ручку двери",
+     "move_to_dialog": "MapToshik",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Veil1": {
+   "name": "Veil1",
+   "story": "toshik",
+   "message": "Вы входите в большой светлый зал. Вдруг вам под ноги бросают фату.",
+   "display_map": true,
+   "map_icon": "v",
+   "answers": [
+    {
+     "message": "Поднять",
+     "move_to_dialog": "Veil2",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "EnterHall"
+       },
+       {
+        "op": "Open",
+        "quest": "AskForWedding"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Перешагнуть",
+     "move_to_dialog": "EnteredHall",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "EnterHall"
+       },
+       {
+        "op": "Open",
+        "quest": "AskForWedding"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Veil2": {
+   "name": "Veil2",
+   "story": "toshik",
+   "message": "Вы обращаете внимание на то, что деревянный пол весь в отметинах от каблуков. Чуть в стороне кто-то обронил фотокарточку.",
+   "answers": [
+    {
+     "message": "Посмотреть",
+     "move_to_dialog": "Veil3"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Veil3": {
+   "name": "Veil3",
+   "story": "toshik",
+   "message": "Вы поднимаете фотографию.",
+   "photo": "Kabluk.jpg",
+   "answers": [
+    {
+     "message": "ФФФФУУУУУУ",
+     "move_to_dialog": "EnteredHall"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "EnteredHall": {
+   "name": "EnteredHall",
+   "story": "toshik",
+   "message": "В зале собрались гости, все очень рады вас видеть. Пожалуй, стоит поговорить с работницей ЗАГСа насчет начала церемонии.",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryToshik"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalToshik"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "🚶‍♂️ идти к...",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "EnterHall"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "Kolyan"
+       }
+      }
+     },
+     "move_to_dialog": "MapMoveTo"
+    },
+    {
+     "message": "📞 набрать на цифры",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "FoundFear"
+    },
+    {
+     "message": "📞 позвонить Демьянову",
+     "available": {
+      "check": "IsOpen",
+      "name": "Demianov"
+     },
+     "move_to_dialog": "Demianov1"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "FoundWallToshik": {
+   "name": "FoundWallToshik",
+   "story": "toshik",
+   "message": "Уперся в стену",
+   "display_map": true,
+   "prevent_move": true,
+   "map_icon": "#",
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryToshik"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalToshik"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "🚶‍♂️ идти к...",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "EnterHall"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "Kolyan"
+       }
+      }
+     },
+     "move_to_dialog": "MapMoveTo"
+    },
+    {
+     "message": "📞 набрать на цифры",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "FoundFear"
+    },
+    {
+     "message": "📞 позвонить Демьянову",
+     "available": {
+      "check": "IsOpen",
+      "name": "Demianov"
+     },
+     "move_to_dialog": "Demianov1"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "FoundFear": {
+   "name": "FoundFear",
+   "story": "toshik",
+   "message": "Вы чувствуете прилив одиночества и отчаяния. Ваши ноги не хотят идти в этом направлении.",
+   "display_map": true,
+   "prevent_move": true,
+   "map_icon": "~",
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryToshik"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalToshik"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "🚶‍♂️ идти к...",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "EnterHall"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "Kolyan"
+       }
+      }
+     },
+     "move_to_dialog": "MapMoveTo"
+    },
+    {
+     "message": "📞 набрать на цифры",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "FoundFear"
+    },
+    {
+     "message": "📞 позвонить Демьянову",
+     "available": {
+      "check": "IsOpen",
+      "name": "Demianov"
+     },
+     "move_to_dialog": "Demianov1"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Demianov1": {
+   "name": "Demianov1",
+   "story": "toshik",
+   "message": "Привет, Антош. Да, у нас есть точки по салу. Я тебе отправлю одну курьером. Помоги только разобраться с недосдачей по FOBO. Нам завезли новых пыликов. Сейчас на витрине вижу 7. По NTS WINCASH продали 9, а в FOBO только 1. *Недосдача сколько?*\n_(ответьте сообщением)_",
+   "answers": [
+    {
+     "message": "В жопе столько",
+     "hidden": true,
+     "move_to_dialog": "Demianov2"
+    },
+    {
+     "message": "На складе столько",
+     "hidden": true,
+     "move_to_dialog": "Demianov2"
+    },
+    {
+     "message": "Сбросить вызов",
+     "move_to_dialog": "MapToshik"
+    },
+    {
+     "message": "Нужна подсказка",
+     "move_to_dialog": "Demianov3"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Demianov2": {
+   "name": "Demianov2",
+   "story": "toshik",
+   "message": "Точно, так оно и есть! Отправил к тебе курьера с *телефоном*. Поздравляю!",
+   "answers": [
+    {
+     "message": "Поблагодарить",
+     "move_to_dialog": "MapToshik",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Phone"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "Demianov"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Demianov3": {
+   "name": "Demianov3",
+   "story": "toshik",
+   "message": "Повторю вопрос. Недосдача сколько?",
+   "photo": "Skolko.jpg",
+   "answers": [
+    {
+     "message": "В жопе столько",
+     "hidden": true,
+     "move_to_dialog": "Demianov2"
+    },
+    {
+     "message": "На складе столько",
+     "hidden": true,
+     "move_to_dialog": "Demianov2"
+    },
+    {
+     "message": "Сбросить вызов",
+     "move_to_dialog": "MapToshik"
+    },
+    {
+     "message": "Ещё подсказку",
+     "move_to_dialog": "Demianov4"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Demianov4": {
+   "name": "Demianov4",
+   "story": "toshik",
+   "message": "Недосдача сколько?",
+   "answers": [
+    {
+     "message": "На складе столько",
+     "move_to_dialog": "Demianov2"
+    },
+    {
+     "message": "В жопе столько",
+     "move_to_dialog": "Demianov2"
+    },
+    {
+     "message": "Сбросить вызов",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Kolyan1": {
+   "name": "Kolyan1",
+   "story": "toshik",
+   "message": "Колян горячо приветвтвует вас, попивая лавандовый смузи. Однако, вид у него встревоженный. Похоже, что-то не так.",
+   "display_map": true,
+   "map_icon": "k",
+   "answers": [
+    {
+     "message": "Поговорить",
+     "available": {
+      "cond": "not",
+      "a": {
+       "check": "IsFinished",
+       "name": "Kolyan"
+      }
+     },
+     "move_to_dialog": "Kolyan2",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "FireAlarm"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "icon": "S"
+         }
+        },
+        "char": "F"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "down",
+         "of": {
+          "icon": "S"
+         }
+        },
+        "char": "F"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "move": "down",
+          "of": {
+           "icon": "S"
+          }
+         }
+        },
+        "char": "F"
+       }
+      ]
+     }
+    },
+    {
+     "message": "WTF?!?!?!",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "Kolyan"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "Has",
+        "name": "Boots"
+       }
+      }
+     },
+     "move_to_dialog": "Kolyan5",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Boots"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "k"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Kolyan2": {
+   "name": "Kolyan2",
+   "story": "toshik",
+   "message": "_Колян:_ Слушай, у меня тут авария произошла. Только что Ромыч позвонил и сказал, что у нас на даче *код Краков*. Нужно срочно метнуться туда, помочь. Я понимаю, у тебя тут мероприятие, но давай съездим по фасту? За 20 минут туда-сюда должны управиться.",
+   "answers": [
+    {
+     "message": "Поехали",
+     "move_to_dialog": "Kolyan3",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "Kolyan"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Отказаться",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "k"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Kolyan3": {
+   "name": "Kolyan3",
+   "story": "toshik",
+   "message": "Вы подозреваете, что ввязались в сомнительную блуду, но другу помочь надо. Тем более, до свадьбы минут 40 ещё есть. Вы садитесь к Коляну в машину и отправляетесь в путь.",
+   "answers": [
+    {
+     "message": "Дальше",
+     "move_to_dialog": "Kolyan4"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Kolyan4": {
+   "name": "Kolyan4",
+   "story": "toshik",
+   "message": "По дороге вы заезжаете на УНЦ за ключами от дачи, затем по пути отвозите некоторые документы маминой подруге на Юго-Западе и буквально через часок оказываетесь на даче.",
+   "answers": [
+    {
+     "message": "😠 fffuuuu...",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "U"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Kolyan5": {
+   "name": "Kolyan5",
+   "story": "toshik",
+   "message": "_Колян_: О, ты уже вернулся! Норм. Сорян, мне пришлось срочно уехать на распродажу обуви в Ельцин центр. Такие мероприятия нельзя пропускать. Тем более, половину я купил в качестве подарка тебе на свадьбу. Держи!",
+   "answers": [
+    {
+     "message": "Принять подарок",
+     "move_to_dialog": "Kolyan6"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Kolyan6": {
+   "name": "Kolyan6",
+   "story": "toshik",
+   "message": "Получено 25 пар различной обуви. Среди них есть и нужные вам *высокие сапоги*",
+   "answers": [
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "k"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha1": {
+   "name": "KolyanDacha1",
+   "story": "toshik",
+   "message": "Колян стоит перед закрытой дверью дачного домика.",
+   "display_map": true,
+   "map_icon": "U",
+   "answers": [
+    {
+     "message": "😡 Fffuuuu?",
+     "available": {
+      "cond": "and",
+      "a": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "KolyanDachaOpenDoor"
+       }
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "Has",
+        "name": "KolyanDachaKey"
+       }
+      }
+     },
+     "move_to_dialog": "KolyanDacha2"
+    },
+    {
+     "message": "🔑 FFUU!",
+     "available": {
+      "check": "Has",
+      "name": "KolyanDachaKey"
+     },
+     "move_to_dialog": "KolyanDacha4"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "U"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha2": {
+   "name": "KolyanDacha2",
+   "story": "toshik",
+   "message": "_Колян_: блин, не могу найти ключи. Либо я их вместе с документами случайно отдал, либо где-то здесь выронил. Можешь поискать? Я пока маминой подруге на цифры наберу.",
+   "answers": [
+    {
+     "message": "🤬 FFFUUUU",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "U"
+      }
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "move": "left",
+          "of": {
+           "move": "up",
+           "of": {
+            "icon": "U"
+           }
+          }
+         }
+        },
+        "char": "?"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha3": {
+   "name": "KolyanDacha3",
+   "story": "toshik",
+   "message": "Вы находите в луже между грядок ржавый ключ. Когда вы поднимаете его, капля грязи падает на ваши брюки.",
+   "display_map": true,
+   "map_icon": "?",
+   "answers": [
+    {
+     "message": "🥶 FFFFUUUU",
+     "move_to_dialog": "MapToshik",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "KolyanDachaKey"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "move": "left",
+          "of": {
+           "move": "up",
+           "of": {
+            "icon": "U"
+           }
+          }
+         }
+        },
+        "char": "-"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha4": {
+   "name": "KolyanDacha4",
+   "story": "toshik",
+   "message": "Колян увлеченно разговаривает по телефону к кем-то из коллег по работе. Похоже, что разговор очень важный. Он отходит в сторону и жестами просит вас попробовать открыть дверь найденным ключом.",
+   "answers": [
+    {
+     "message": "💣 FFUUUU!! 💣",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "move": "left",
+       "of": {
+        "icon": "D"
+       }
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "KolyanDachaOpenDoor"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "move": "up",
+          "of": {
+           "icon": "D"
+          }
+         }
+        },
+        "char": "U"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "icon": "D"
+         }
+        },
+        "char": "-"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha5": {
+   "name": "KolyanDacha5",
+   "story": "toshik",
+   "message": "Пока вы пытаетесь открыть дверь, Колян отходит дальше. Видимо, ваше пыхтение мешает ему общаться.",
+   "display_map": true,
+   "map_icon": "D",
+   "answers": [
+    {
+     "message": "🥵 ...",
+     "move_to_dialog": "KolyanDacha6",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_first",
+        "icon": "U",
+        "char": "-"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha6": {
+   "name": "KolyanDacha6",
+   "story": "toshik",
+   "message": "Дверь не поддаётся. Ключ либо слишком заржавел, либо вообще не подходит. Вы слышите, как машина Коляна заводится и уезжает. Может быть он поехал встречать кого-то у ворот?",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "🌋 FFFFUUUU!!1 🌋",
+     "move_to_dialog": "KolyanDacha7"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "KolyanDacha7": {
+   "name": "KolyanDacha7",
+   "story": "toshik",
+   "message": "Через 20 минут стараний вы понимаете, что дверь открыть не получится. Колян так и не вернулся, а телефон у него постоянно занят. Похоже, что у вас нет другого выбора, кроме как ехать обратно в ЗАГС на делике.",
+   "answers": [
+    {
+     "message": "🤯 F#№;%🧨💥!! 🤯",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "initial_icon": {
+       "icon": "O"
+      }
+     },
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "KolyanDachaKey"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "KolyanDachaOpenDoor"
+       },
+       {
+        "op": "Finish",
+        "quest": "Kolyan"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sokrat1": {
+   "name": "Sokrat1",
+   "story": "toshik",
+   "message": "Сократ (задротит)",
+   "display_map": true,
+   "map_icon": "S",
+   "answers": [
+    {
+     "message": "Сократ, что это было?!",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "FireAlarm"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsKnown",
+        "name": "Sokrat"
+       }
+      }
+     },
+     "move_to_dialog": "Sokrat2"
+    },
+    {
+     "message": "Помочь с роутером",
+     "available": {
+      "check": "IsOpen",
+      "name": "Sokrat"
+     },
+     "move_to_dialog": "Sokrat3"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "S"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sokrat2": {
+   "name": "Sokrat2",
+   "story": "toshik",
+   "message": "_Сократ:_ Сорян, чёт пригорел немного. Опять вайфай роутер не работает, я из-за этого катку в лолец слил!",
+   "answers": [
+    {
+     "message": "Предложить помощь",
+     "move_to_dialog": "Sokrat3",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "Sokrat"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Не связываться с психом",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "S"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sokrat3": {
+   "name": "Sokrat3",
+   "story": "toshik",
+   "message": "_Сократ:_ Поможешь починить роутер? Я уже всё перепробовал. И молотком его бил, и об стену. Не помогает.",
+   "answers": [
+    {
+     "message": "Поправить антенны",
+     "move_to_dialog": "Sokrat4"
+    },
+    {
+     "message": "Перезагрузить роутер",
+     "move_to_dialog": "Sokrat4"
+    },
+    {
+     "message": "Использовать жезл",
+     "available": {
+      "check": "Has",
+      "name": "Stick"
+     },
+     "move_to_dialog": "Sokrat5",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "Stick"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sokrat4": {
+   "name": "Sokrat4",
+   "story": "toshik",
+   "message": "_Сократ:_ Кажется, ничего не изменилось",
+   "answers": [
+    {
+     "message": "Поправить антенны",
+     "move_to_dialog": "Sokrat4"
+    },
+    {
+     "message": "Перезагрузить роутер",
+     "move_to_dialog": "Sokrat4"
+    },
+    {
+     "message": "Использовать жезл",
+     "available": {
+      "check": "Has",
+      "name": "Stick"
+     },
+     "move_to_dialog": "Sokrat5"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "S"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sokrat5": {
+   "name": "Sokrat5",
+   "story": "toshik",
+   "message": "_Сократ:_ Ух ты! Никогда бы сам не догадался вставить заряженный эбонитовый жезл погбы в свой роутер! Но с этой антенной интернет стал работать просто идеально! Не знаю, как тебя благодарить. На вот, держи мою *шляпу* из Феодосии. Она до сих пор почти как новая.",
+   "answers": [
+    {
+     "message": "Поблагодарить",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "S"
+      }
+     },
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Hat"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "Sokrat"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Flame1": {
+   "name": "Flame1",
+   "story": "toshik",
+   "message": "Деревянный паркет полыхает перед вашими ногами. Вы слышите пожарную сирену.",
+   "display_map": true,
+   "prevent_move": true,
+   "map_icon": "F",
+   "answers": [
+    {
+     "message": "Использовать огнетушитель",
+     "available": {
+      "check": "Has",
+      "name": "FireExtinguisher"
+     },
+     "move_to_dialog": "Flame2",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "FireExtinguisher"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "FireAlarm"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_first",
+        "icon": "F",
+        "char": "-"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Нужно что-то придумать...",
+     "move_to_dialog": "MapToshik"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Flame2": {
+   "name": "Flame2",
+   "story": "toshik",
+   "message": "Уффф, кажется получилось избежать катастрофы. Надо спросить у Сократа о произошедшем.",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryToshik"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalToshik"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "🚶‍♂️ идти к...",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsFinished",
+       "name": "EnterHall"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "IsOpen",
+        "name": "Kolyan"
+       }
+      }
+     },
+     "move_to_dialog": "MapMoveTo"
+    },
+    {
+     "message": "📞 набрать на цифры",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "FoundFear"
+    },
+    {
+     "message": "📞 позвонить Демьянову",
+     "available": {
+      "check": "IsOpen",
+      "name": "Demianov"
+     },
+     "move_to_dialog": "Demianov1"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "SmallDoor": {
+   "name": "SmallDoor",
+   "story": "toshik",
+   "message": "На двери табличка: СЛУЖЕБНОЕ ПОМЕЩЕНИЕ.",
+   "map_icon": "п",
+   "answers": [
+    {
+     "message": "Выбить дверь ногой!",
+     "available": {
+      "check": "IsOpen",
+      "name": "FireAlarm"
+     },
+     "move_to_dialog": "MapToshik",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "п"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "FireExtinguisher": {
+   "name": "FireExtinguisher",
+   "story": "toshik",
+   "message": "На стене висит огнетушитель.",
+   "display_map": true,
+   "map_icon": "f",
+   "answers": [
+    {
+     "message": "Схватить",
+     "move_to_dialog": "MapToshik",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "FireExtinguisher"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "pos": true
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Jacob1": {
+   "name": "Jacob1",
+   "story": "toshik",
+   "message": "_Яков:_ Антон, я очень рад тоум, что ты пригалсил нас с Леной на свадьбу. Мы тут облутались оптимизмом и не отсечемся ещё трлько минут через 20-30.",
+   "display_map": true,
+   "map_icon": "J",
+   "answers": [
+    {
+     "message": "Попросить обсчитать проетк",
+     "available": {
+      "check": "IsOpen",
+      "name": "Sedosh"
+     },
+     "move_to_dialog": "Jacob2",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "Jacob"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Дать тефлвон",
+     "available": {
+      "check": "Has",
+      "name": "Phone"
+     },
+     "move_to_dialog": "Jacob3",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "Phone"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Откланяться",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "J"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Jacob2": {
+   "name": "Jacob2",
+   "story": "toshik",
+   "message": "_Яков:_ Да легко, но я только что разбил свой *телефон*. Замути мне новый по салу, и я всё быстренькол бcчитаю.",
+   "answers": [
+    {
+     "message": "Пообещать помочь",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "J"
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "Demianov"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Jacob3": {
+   "name": "Jacob3",
+   "story": "toshik",
+   "message": "_Яков:_ Топово! Сейчас изи всё посчитаем. Такс... У нас есть кран-балка на 25, а шпонки только на 3 и на 4.\nСколько шпонок взять, чтобы закрутить кран-балку?",
+   "answers": [
+    {
+     "message": "три на 15",
+     "move_to_dialog": "Jacob4"
+    },
+    {
+     "message": "квадратную на 3 и на 4",
+     "move_to_dialog": "Jacob5"
+    },
+    {
+     "message": "сруб на 30 и пару шпонок",
+     "move_to_dialog": "Jacob4"
+    },
+    {
+     "message": "треугольную и 8 эксцентриков",
+     "move_to_dialog": "Jacob4"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Jacob4": {
+   "name": "Jacob4",
+   "story": "toshik",
+   "message": "_Яков:_ Что-то не сходится...",
+   "answers": [
+    {
+     "message": "Посчитат ьещё раз",
+     "move_to_dialog": "Jacob3"
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Jacob5": {
+   "name": "Jacob5",
+   "story": "toshik",
+   "message": "_Яков:_ Да, всё сошлоь. Держи *провджкт*!",
+   "answers": [
+    {
+     "message": "Откланяться",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "J"
+      }
+     },
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Project"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "Jacob"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sedosh1": {
+   "name": "Sedosh1",
+   "story": "toshik",
+   "message": "Капитан Владимир Седошенко поздравляет вас от всего сердца.",
+   "display_map": true,
+   "map_icon": "K",
+   "answers": [
+    {
+     "message": "Поговорить",
+     "available": {
+      "cond": "not",
+      "a": {
+       "check": "Has",
+       "name": "Stick"
+      }
+     },
+     "move_to_dialog": "Sedosh2"
+    },
+    {
+     "message": "Отдать проект от Якова",
+     "available": {
+      "check": "Has",
+      "name": "Project"
+     },
+     "move_to_dialog": "Sedosh3",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "Project"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "K"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sedosh2": {
+   "name": "Sedosh2",
+   "story": "toshik",
+   "message": "Капитан Владимир Седошенко делится своими планами. Ему необходима помощь в *проектировании* таунхауса из палок и связующего материала.",
+   "answers": [
+    {
+     "message": "Пообещать помочь",
+     "available": {
+      "cond": "not",
+      "a": {
+       "check": "IsOpen",
+       "name": "Sedosh"
+      }
+     },
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "K"
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "Sedosh"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Отдать проект от Якова",
+     "available": {
+      "check": "Has",
+      "name": "Project"
+     },
+     "move_to_dialog": "Sedosh3",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "Project"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Уйти",
+     "available": {
+      "check": "IsOpen",
+      "name": "Sedosh"
+     },
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "K"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "Sedosh3": {
+   "name": "Sedosh3",
+   "story": "toshik",
+   "message": "Капитан Владимир Седошенко благодарит вас за оказанную услугу. Он с гордым видом достает из заднего кармана заряженый *эбонитовый стержень* и торжественно вручает со словами: \"Этот могущественный артефакт я нашел, перекапывая глиняный участок на заднем дворе своего будущего особняка. Думаю, ты найдешь ему применение.\"",
+   "answers": [
+    {
+     "message": "Поблагодарить и уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "K"
+      }
+     },
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Stick"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "Sedosh"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "ZagsWorker1": {
+   "name": "ZagsWorker1",
+   "story": "toshik",
+   "message": "Работница ЗАГСа сидит за столом и поправляет прическу.",
+   "map_icon": "Z",
+   "answers": [
+    {
+     "message": "Поговорить",
+     "available": {
+      "cond": "not",
+      "a": {
+       "check": "IsFinished",
+       "name": "DressForWedding"
+      }
+     },
+     "move_to_dialog": "ZagsWorker2",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "AskForWedding"
+       },
+       {
+        "op": "Open",
+        "quest": "DressForWedding"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Приодеться!",
+     "available": {
+      "cond": "and",
+      "a": {
+       "cond": "and",
+       "a": {
+        "cond": "and",
+        "a": {
+         "check": "IsOpen",
+         "name": "DressForWedding"
+        },
+        "b": {
+         "check": "Has",
+         "name": "Boots"
+        }
+       },
+       "b": {
+        "check": "Has",
+        "name": "Hat"
+       }
+      },
+      "b": {
+       "check": "Has",
+       "name": "Glasses"
+      }
+     },
+     "move_to_dialog": "ZagsWorker3"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "Z"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "ZagsWorker2": {
+   "name": "ZagsWorker2",
+   "story": "toshik",
+   "message": "Она окидывает вас оценивающим взглядом и произносит:\nВы не можете начинать церемонию в таком виде! В правилах нашего загса ясно сказано, что брачующиеся должны быть одеты в строго определённой форме! Для жениха это: *шляпа*, *монокль* и *высокие сапоги*. Идите ищите.",
+   "answers": [
+    {
+     "message": "Приодеться!",
+     "available": {
+      "cond": "and",
+      "a": {
+       "cond": "and",
+       "a": {
+        "cond": "and",
+        "a": {
+         "check": "IsOpen",
+         "name": "DressForWedding"
+        },
+        "b": {
+         "check": "Has",
+         "name": "Boots"
+        }
+       },
+       "b": {
+        "check": "Has",
+        "name": "Hat"
+       }
+      },
+      "b": {
+       "check": "Has",
+       "name": "Glasses"
+      }
+     },
+     "move_to_dialog": "ZagsWorker3"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapToshik",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "Z"
+      }
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "ZagsWorker3": {
+   "name": "ZagsWorker3",
+   "story": "toshik",
+   "message": "Вот, теперь можно и начинать! А где невеста?",
+   "answers": [
+    {
+     "message": "Далее",
+     "move_to_dialog": "ZagsEnd",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "DressForWedding"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "ZagsEnd": {
+   "name": "ZagsEnd",
+   "story": "toshik",
+   "message": "Тем временем на другом конце города...",
+   "answers": [
+    {
+     "message": "Далее",
+     "move_to_dialog": "StartNastya",
+     "move_to_pos": {
+      "initial_icon": {
+       "icon": "N"
+      }
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "clear",
+        "at": {
+         "initial_icon": {
+          "icon": "N"
+         }
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "O"
+  },
+  "StartNastya": {
+   "name": "StartNastya",
+   "story": "nastya",
+   "message": "Концерт Триагрутрики только что закончился. Вы, конечно, не могли его пропустить, даже в день свадьбы. В любом случае это не проблема, надо только как-то такси заказать, а телефон сел. Кажется, на улице был таксофон.",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "MapNastya": {
+   "name": "MapNastya",
+   "story": "nastya",
+   "message": "_Перемещайтесь по карте, или выберите действие_",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "InventoryNastya": {
+   "name": "InventoryNastya",
+   "story": "nastya",
+   "dynamic": true,
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "JournalNastya": {
+   "name": "JournalNastya",
+   "story": "nastya",
+   "dynamic": true,
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Police1": {
+   "name": "Police1",
+   "story": "nastya",
+   "message": "На выходе из зала стоит сурового вида Полицейский. Похоже, что кто-то пронёс на концерт незаконные вещества и теперь никого не выпустят, пока не прошманают каждый угол и каждый карман. Как некстати!",
+   "prevent_move": true,
+   "map_icon": "P",
+   "answers": [
+    {
+     "message": "Найти выход",
+     "available": {
+      "cond": "not",
+      "a": {
+       "check": "IsFinished",
+       "name": "Police"
+      }
+     },
+     "move_to_dialog": "MapNastya",
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "Police"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Уйти",
+     "available": {
+      "check": "IsFinished",
+      "name": "Police"
+     },
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Crowd0": {
+   "name": "Crowd0",
+   "story": "nastya",
+   "message": "Перед вами толпа фанатов Триагрутрики",
+   "photo": "Crowd_gop.jpg",
+   "map_icon": "c",
+   "answers": [
+    {
+     "message": "Идти напролом",
+     "available": {
+      "check": "IsOpen",
+      "name": "Police"
+     },
+     "move_to_dialog": "MapNastya",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_first",
+        "icon": "c",
+        "char": "-"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Не связываться",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "pos": true
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Crowd1": {
+   "name": "Crowd1",
+   "story": "nastya",
+   "message": "Перед вами особо агрессивная толпа фанатов Триагрутрики",
+   "photo": "Crowd_vata.jpg",
+   "map_icon": "C",
+   "answers": [
+    {
+     "message": "Идти с боем",
+     "available": {
+      "check": "IsOpen",
+      "name": "Police"
+     },
+     "move_to_dialog": "MapNastya",
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_first",
+        "icon": "C",
+        "char": "-"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Развернуться",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "pos": true
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Crowd2": {
+   "name": "Crowd2",
+   "story": "nastya",
+   "message": "Перед вами какие-то непонятные чуваки",
+   "photo": "Triagrutrika.jpg",
+   "map_icon": "T",
+   "answers": [
+    {
+     "message": "Пройти мимо",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "pos": true
+      }
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_first",
+        "icon": "T",
+        "char": "-"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "up",
+         "of": {
+          "move": "left",
+          "of": {
+           "move": "left",
+           "of": {
+            "move": "left",
+            "of": {
+             "start": true
+            }
+           }
+          }
+         }
+        },
+        "char": "G"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "down",
+         "of": {
+          "move": "left",
+          "of": {
+           "move": "left",
+           "of": {
+            "move": "left",
+            "of": {
+             "start": true
+            }
+           }
+          }
+         }
+        },
+        "char": "B"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich1": {
+   "name": "Genich1",
+   "story": "nastya",
+   "message": "Перед вами Женич. Как водится, пьян и весел.",
+   "display_map": true,
+   "map_icon": "G",
+   "answers": [
+    {
+     "message": "🍻 Дать пиво",
+     "available": {
+      "check": "Has",
+      "name": "Beer"
+     },
+     "move_to_dialog": "Genich7",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "Beer"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Поговорить",
+     "available": {
+      "check": "IsOpen",
+      "name": "Police"
+     },
+     "move_to_dialog": "Genich2"
+    },
+    {
+     "message": "Слушать",
+     "available": {
+      "check": "IsFinished",
+      "name": "Police"
+     },
+     "move_to_dialog": "GenichPolice1"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "G"
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich2": {
+   "name": "Genich2",
+   "story": "nastya",
+   "message": "_Женич_: Оооо, какие люди! А я тут как раз думаю что на концерте Триагрутрики по-любому тебя встречу. Тут ещё Лёнька где-то ходит. Мы с ним офигенно затусили с понедельника, а сегодня какой день недели вообще? Мы тут просто тусовались ваще ваще ваще просто уууу...",
+   "answers": [
+    {
+     "message": "Слушать ещё 5 минут",
+     "move_to_dialog": "Genich3"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich3": {
+   "name": "Genich3",
+   "story": "nastya",
+   "message": "_Женич_: ...дак вот в фифе сейчас карточки золотые сделали, так что приходится фармить их по квестам. Ага, только читеры сразу замутили себе по 100 этих карт и теперь вообще играть нереально. Я, считай, за две недели фарма открыл только Кержакова и Онопко. Да и то они из сундуков выпали. А за Weekend лигу выпал бриллиантовый Месси. Ну вот это да, это, конечно круто было!..",
+   "answers": [
+    {
+     "message": "Слушать ещё 20 минут",
+     "move_to_dialog": "Genich4"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich4": {
+   "name": "Genich4",
+   "story": "nastya",
+   "message": "_Женич_: ...и у нас на складе сейчас Антона, считай, повысили. А кого на его место поставить? Ну ясно понятно сестру Карягиной. Одно слово, каряга. Её как поставили у нас пол смены хотели заявление написать. Тоху сразу все зауважали. Ну там были за ним косяки тоже, но как Палну начальником сделали, у всех сразу премии порезали. А палет-то меньше не становится. У нас вообще, 6-я линия открылась...",
+   "answers": [
+    {
+     "message": "Слушать",
+     "move_to_dialog": "Genich5"
+    },
+    {
+     "message": "Перебить",
+     "move_to_dialog": "Genich6"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich5": {
+   "name": "Genich5",
+   "story": "nastya",
+   "message": "_Женич_: ...Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed in placerat justo. Mauris et neque sit amet dolor interdum hendrerit eu nec purus. Nam suscipit fermentum vestibulum. Nam nec mi sem. Duis vel interdum justo. Curabitur sollicitudin fermentum lectus sit amet tempus. Vivamus rhoncus et mauris ut posuere. Donec tempus sodales diam, nec vulputate augue vestibulum et. Pellentesque interdum orci at neque sodales dictum. Suspendisse tempus leo nec euismod placerat. Etiam ultrices laoreet lacinia....",
+   "answers": [
+    {
+     "message": "Перебить",
+     "move_to_dialog": "Genich6"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich6": {
+   "name": "Genich6",
+   "story": "nastya",
+   "message": "Вы просите Женича помочь как-то отвлечь полицейского.\n_Женич_: да без проблем! Только так дела не делаются. Давай ты нам *пивка* купишь, мы красиво-душевно поговорим и что-нибудь придумаем.",
+   "answers": [
+    {
+     "message": "🍻 Дать пиво",
+     "available": {
+      "check": "Has",
+      "name": "Beer"
+     },
+     "move_to_dialog": "Genich7",
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Take",
+        "item": "Beer"
+       }
+      ]
+     }
+    },
+    {
+     "message": "Метнуться",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "G"
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "BuyBeer"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Genich7": {
+   "name": "Genich7",
+   "story": "nastya",
+   "message": "_Женич_: Во, вот это красиво!\nОн забирает у вас оба стакана и отправляется к полицейскому.",
+   "answers": [
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "move": "left",
+       "of": {
+        "start": true
+       }
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "Police"
+       }
+      ]
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "initial_icon": {
+          "icon": "G"
+         }
+        },
+        "char": "-"
+       },
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "left",
+         "of": {
+          "icon": "P"
+         }
+        },
+        "char": "G"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "GenichPolice1": {
+   "name": "GenichPolice1",
+   "story": "nastya",
+   "message": "_Женич_: Вы вот, товарищ полицейский, понимаете сути своих обвинений? Я выдвигаю только те обвинения, за которые могу предъявить, показать доказательтва. А вы мне тут обвиняете того, чего не сможете доказать. Давайте вот лучше пивка пивнём душевно в душу...",
+   "answers": [
+    {
+     "message": "Прокрасться мимо",
+     "move_to_dialog": "GenichPolice2",
+     "move_to_pos": {
+      "move": "right",
+      "of": {
+       "icon": "P"
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "OrderTaxi"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "GenichPolice2": {
+   "name": "GenichPolice2",
+   "story": "nastya",
+   "message": "Пока полицейского отвлекли, вам удаётся незаметно выскочить на улицу. Начало свадьбы через 30 минут, надо бы вызвать такси, но телефон всё так же сел.",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender1": {
+   "name": "Bartender1",
+   "story": "nastya",
+   "message": "За деревянной стойкой бармен томно потирает бокалы",
+   "display_map": true,
+   "map_icon": "B",
+   "answers": [
+    {
+     "message": "Купить пива",
+     "available": {
+      "check": "IsOpen",
+      "name": "BuyBeer"
+     },
+     "move_to_dialog": "Bartender2",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "icon": "B"
+      }
+     }
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "icon": "B"
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender2": {
+   "name": "Bartender2",
+   "story": "nastya",
+   "message": "_Бармен_: не проблема! Правда, касса уже закрылась, так что рубли не принимаю. Галактическими кредитами сможете расплатиться? За 2 пива с вас 30 кредитов.",
+   "answers": [
+    {
+     "message": "Дать 30",
+     "move_to_dialog": "Bartender3"
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "icon": "B"
+      }
+     }
+    },
+    {
+     "message": "Попросить скидку",
+     "move_to_dialog": "Bartender4"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender3": {
+   "name": "Bartender3",
+   "story": "nastya",
+   "message": "Вы открываете кошелёк и понимаете, что у вас не хватит. Всё, что у вас есть с собой - это 20 кредитов и 4000 рублей.",
+   "answers": [
+    {
+     "message": "Попросить скидку",
+     "move_to_dialog": "Bartender4"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender4": {
+   "name": "Bartender4",
+   "story": "nastya",
+   "message": "_Бармен_: я сделаю вам скидку в 5 кредитов, если сможете отгадать загадку: \nПриходят в бар Михалков, Алексей Герман, Дарен Аранофски и начинают заказывать отсылочки к библии. Михалков заказал гвоздь в ладонь и 5 хлебов. Герман заказал предательство друга и брошенный камень, а Аранофски поправил венок и достал айфон. У бармена от такого случился апокалипсис, пиво стало полынью и чуть не умер брат.\n*Вопрос*: сколько отсылочек к библии было заказано?\n_(ответьте сообщением)_",
+   "answers": [
+    {
+     "message": "1",
+     "move_to_dialog": "Bartender7"
+    },
+    {
+     "message": "2",
+     "move_to_dialog": "Bartender7"
+    },
+    {
+     "message": "3",
+     "move_to_dialog": "Bartender7"
+    },
+    {
+     "message": "4",
+     "move_to_dialog": "Bartender5"
+    },
+    {
+     "message": "5",
+     "move_to_dialog": "Bartender6"
+    },
+    {
+     "message": "6",
+     "move_to_dialog": "Bartender6"
+    },
+    {
+     "message": "7",
+     "move_to_dialog": "Bartender6"
+    },
+    {
+     "message": "8",
+     "move_to_dialog": "Bartender6"
+    },
+    {
+     "message": "9",
+     "move_to_dialog": "Bartender6"
+    },
+    {
+     "message": "10",
+     "move_to_dialog": "Bartender6"
+    },
+    {
+     "message": "11",
+     "move_to_dialog": "Bartender6"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender5": {
+   "name": "Bartender5",
+   "story": "nastya",
+   "message": "_Бармен_: Точно, 4! Заказано было ровно столько. Остальные отсылочки в загадку добавил её автор, потому что он так видит. Теперь я готов продать вам пиво за *25 кредитов*.",
+   "answers": [
+    {
+     "message": "Ещё скидку",
+     "move_to_dialog": "Bartender8"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender6": {
+   "name": "Bartender6",
+   "story": "nastya",
+   "message": "_Бармен_: Что-то многовато...",
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "Bartender4"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender7": {
+   "name": "Bartender7",
+   "story": "nastya",
+   "message": "_Бармен_: Хм, всё таки побольше",
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "Bartender4"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender8": {
+   "name": "Bartender8",
+   "story": "nastya",
+   "message": "_Бармен_: тогда ещё одна загадка. Приходит бармен на работу устраиваться. Какой первый вопрос ему задают на собеседовании?",
+   "answers": [
+    {
+     "message": "Есть медкнижка?",
+     "move_to_dialog": "Bartender10"
+    },
+    {
+     "message": "Посчитать сдачу",
+     "move_to_dialog": "Bartender10"
+    },
+    {
+     "message": "i++ + ++i",
+     "move_to_dialog": "Bartender9"
+    },
+    {
+     "message": "Образование?",
+     "move_to_dialog": "Bartender10"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender9": {
+   "name": "Bartender9",
+   "story": "nastya",
+   "message": "_Бармен_: Ну естественно! Этот вопрос идеален на любом собеседовании. Хорошо, моё последнее предложение: *20 кредитов* за две кружки пива.",
+   "answers": [
+    {
+     "message": "Беру",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "icon": "B"
+      }
+     },
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "Beer"
+       }
+      ]
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Finish",
+        "quest": "BuyBeer"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Bartender10": {
+   "name": "Bartender10",
+   "story": "nastya",
+   "message": "_Бармен_: Нет, это вряд ли.",
+   "answers": [
+    {
+     "message": "<<<",
+     "move_to_dialog": "Bartender8"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon1": {
+   "name": "Taxofon1",
+   "story": "nastya",
+   "message": "_Таксофон:_ Здравствуйте! Спасибо, что позвонили в нашу таксомоторную компанию! Ваш звонок очень важен для нас. Оставайтесь на линии, первый освободившийся оператор примет ваш звонок. Примерное время ожидания 28 минут.",
+   "answers": [
+    {
+     "message": "Ждать",
+     "available": {
+      "check": "IsOpen",
+      "name": "OrderTaxi"
+     },
+     "move_to_dialog": "Taxofon2"
+    },
+    {
+     "message": "Нетерпеливо топнуть ножкой",
+     "available": {
+      "check": "IsOpen",
+      "name": "OrderTaxi"
+     },
+     "move_to_dialog": "Taxofon2"
+    },
+    {
+     "message": "Набрать корешу",
+     "available": {
+      "check": "Has",
+      "name": "PhoneNumber"
+     },
+     "move_to_dialog": "Taxofon9"
+    },
+    {
+     "message": "Уже не нужно",
+     "available": {
+      "check": "IsFinished",
+      "name": "OrderTaxi"
+     },
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "z"
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon2": {
+   "name": "Taxofon2",
+   "story": "nastya",
+   "message": "_Таксофон:_ Примерное время ожидания 27 минут.",
+   "answers": [
+    {
+     "message": "Ждать",
+     "move_to_dialog": "Taxofon3"
+    },
+    {
+     "message": "Пнуть",
+     "move_to_dialog": "Taxofon6"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon3": {
+   "name": "Taxofon3",
+   "story": "nastya",
+   "message": "_Таксофон:_ Примерное время ожидания 26 минут.",
+   "answers": [
+    {
+     "message": "Ждать",
+     "move_to_dialog": "Taxofon4"
+    },
+    {
+     "message": "Пнуть",
+     "move_to_dialog": "Taxofon6"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon4": {
+   "name": "Taxofon4",
+   "story": "nastya",
+   "message": "_Таксофон:_ Примерное время ожидания 25 минут.",
+   "answers": [
+    {
+     "message": "Ждать",
+     "move_to_dialog": "Taxofon5"
+    },
+    {
+     "message": "Пнуть",
+     "move_to_dialog": "Taxofon6"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon5": {
+   "name": "Taxofon5",
+   "story": "nastya",
+   "message": "_Таксофон:_ Пшшшшшш... [звонок сорвался]",
+   "answers": [
+    {
+     "message": "Набрать снова",
+     "move_to_dialog": "Taxofon1"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon6": {
+   "name": "Taxofon6",
+   "story": "nastya",
+   "message": "_Таксофон:_ Здравствуйте! Трансгалактическая таксомоторная компания рада приветствовать вас! Нами была зафиксирована вспышка ярости при попытке вызвать такси. Не нужно свирепствовать, трансгалактическая таксомоторная компания всегда придёт на помощь!",
+   "answers": [
+    {
+     "message": "Заказать такси",
+     "move_to_dialog": "Taxofon7"
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon7": {
+   "name": "Taxofon7",
+   "story": "nastya",
+   "message": "_Таксофон:_ Водитель приедет в ближайшее время! С вас 20 галактических кредитов.",
+   "answers": [
+    {
+     "message": "У меня только рубли",
+     "move_to_dialog": "Taxofon8",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "z"
+      }
+     },
+     "change_journal": {
+      "seq": [
+       {
+        "op": "Open",
+        "quest": "FindCredits"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon8": {
+   "name": "Taxofon8",
+   "story": "nastya",
+   "message": "_Таксофон:_ Что ж, извините, всего хорошего.",
+   "display_map": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Taxofon9": {
+   "name": "Taxofon9",
+   "story": "nastya",
+   "message": "_Таксофон:_ Дорогой вы мой человечек, категорически вас приветствую! Если вам необходимо произвести обмен рублей на галактические кредиты, то вы обратились по нужному адресу! Ведь так много зависит от правильного выбора надёждного поставщика финансовых услуг. Оставайтесь на месте, наш человечек уже выдвинулся в Вашу сторону чтобы порешать вопросик!",
+   "answers": [
+    {
+     "message": "Окей...",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "icon": "z"
+      }
+     },
+     "change_map": {
+      "map_ops": [
+       {
+        "op": "replace_at",
+        "at": {
+         "move": "up",
+         "of": {
+          "move": "right",
+          "of": {
+           "icon": "z"
+          }
+         }
+        },
+        "char": "o"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Repa1": {
+   "name": "Repa1",
+   "story": "nastya",
+   "message": "_Репа_: Привет, Настён!",
+   "display_map": true,
+   "map_icon": "R",
+   "answers": [
+    {
+     "message": "Есть 20 кредитов?",
+     "available": {
+      "cond": "and",
+      "a": {
+       "check": "IsOpen",
+       "name": "FindCredits"
+      },
+      "b": {
+       "cond": "not",
+       "a": {
+        "check": "Has",
+        "name": "PhoneNumber"
+       }
+      }
+     },
+     "move_to_dialog": "Repa2",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "R"
+      }
+     }
+    },
+    {
+     "message": "Уйти",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "R"
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "Repa2": {
+   "name": "Repa2",
+   "story": "nastya",
+   "message": "_Репа_: 20 Галактических кредитов до ЗАГСа?! Офигеть! Нет, у меня нет налика. Но если у тебя есть немного рублей, то у меня есть кент, готовый их превратить в некоторое количество кредитов. *Набери ему на цифры*, он подскочет, обкашляете.",
+   "answers": [
+    {
+     "message": "Спасибо!",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "left",
+      "of": {
+       "icon": "R"
+      }
+     },
+     "change_inventory": {
+      "seq": [
+       {
+        "op": "Give",
+        "item": "PhoneNumber"
+       }
+      ]
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "FoundWallNastya": {
+   "name": "FoundWallNastya",
+   "story": "nastya",
+   "message": "Уперлась в стену",
+   "display_map": true,
+   "prevent_move": true,
+   "map_icon": "%",
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  },
+  "FoundRoad": {
+   "name": "FoundRoad",
+   "story": "nastya",
+   "message": "Перед вами дорога. Открытых люков на ней больше, чем асфальта, так что на каблуках лучше не соваться.",
+   "display_map": true,
+   "prevent_move": true,
+   "map_icon": "=",
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "up",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "sub",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "move": "down",
+      "of": {
+       "pos": true
+      }
+     }
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya",
+     "move_to_pos": {
+      "arith": "add",
+      "a": {
+       "pos": true
+      },
+      "b": {
+       "int": 1
+      }
+     }
+    }
+   ],
+   "player_icon": "N"
+  }
+ },
+ "order": [
+  "StartToshik",
+  "MapToshik",
+  "MapMoveTo",
+  "InventoryToshik",
+  "JournalToshik",
+  "Glasses1",
+  "Glasses2",
+  "StartDoors1",
+  "StartDoors2",
+  "StartDoors3",
+  "StartDoors4",
+  "Veil1",
+  "Veil2",
+  "Veil3",
+  "EnteredHall",
+  "FoundWallToshik",
+  "FoundFear",
+  "Demianov1",
+  "Demianov2",
+  "Demianov3",
+  "Demianov4",
+  "Kolyan1",
+  "Kolyan2",
+  "Kolyan3",
+  "Kolyan4",
+  "Kolyan5",
+  "Kolyan6",
+  "KolyanDacha1",
+  "KolyanDacha2",
+  "KolyanDacha3",
+  "KolyanDacha4",
+  "KolyanDacha5",
+  "KolyanDacha6",
+  "KolyanDacha7",
+  "Sokrat1",
+  "Sokrat2",
+  "Sokrat3",
+  "Sokrat4",
+  "Sokrat5",
+  "Flame1",
+  "Flame2",
+  "SmallDoor",
+  "FireExtinguisher",
+  "Jacob1",
+  "Jacob2",
+  "Jacob3",
+  "Jacob4",
+  "Jacob5",
+  "Sedosh1",
+  "Sedosh2",
+  "Sedosh3",
+  "ZagsWorker1",
+  "ZagsWorker2",
+  "ZagsWorker3",
+  "ZagsEnd",
+  "StartNastya",
+  "MapNastya",
+  "InventoryNastya",
+  "JournalNastya",
+  "Police1",
+  "Crowd0",
+  "Crowd1",
+  "Crowd2",
+  "Genich1",
+  "Genich2",
+  "Genich3",
+  "Genich4",
+  "Genich5",
+  "Genich6",
+  "Genich7",
+  "GenichPolice1",
+  "GenichPolice2",
+  "Bartender1",
+  "Bartender2",
+  "Bartender3",
+  "Bartender4",
+  "Bartender5",
+  "Bartender6",
+  "Bartender7",
+  "Bartender8",
+  "Bartender9",
+  "Bartender10",
+  "Taxofon1",
+  "Taxofon2",
+  "Taxofon3",
+  "Taxofon4",
+  "Taxofon5",
+  "Taxofon6",
+  "Taxofon7",
+  "Taxofon8",
+  "Taxofon9",
+  "Repa1",
+  "Repa2",
+  "FoundWallNastya",
+  "FoundRoad"
+ ]
+}
