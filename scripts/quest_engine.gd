@@ -280,18 +280,18 @@ func _dynamic_message(name: String) -> String:
 	match name:
 		"InventoryToshik":
 			var text := "*Инвентарь*:\n"
-			if "Phone" in inventory: text += "📱 телефон\n"
-			if "Project" in inventory: text += "📄 проект\n"
-			if "Stick" in inventory: text += "⚡️ жезл\n"
-			if "KolyanDachaKey" in inventory: text += "🔑 ключ\n"
-			if "FireExtinguisher" in inventory: text += "🧯 огнетушитель\n"
-			if "Glasses" in inventory: text += "🧐 монокль\n"
-			if "Boots" in inventory: text += "👢 сапоги\n"
-			if "Hat" in inventory: text += "🎩 шляпа\n"
+			if "Phone" in inventory: text += "• 📱 телефон\n"
+			if "Project" in inventory: text += "• 📄 проект\n"
+			if "Stick" in inventory: text += "• ⚡️ жезл\n"
+			if "KolyanDachaKey" in inventory: text += "• 🔑 ключ\n"
+			if "FireExtinguisher" in inventory: text += "• 🧯 огнетушитель\n"
+			if "Glasses" in inventory: text += "• 🧐 монокль\n"
+			if "Boots" in inventory: text += "• 👢 сапоги\n"
+			if "Hat" in inventory: text += "• 🎩 шляпа\n"
 			return text
 		"InventoryNastya":
 			var text := "*Инвентарь*:\n"
-			if "Beer" in inventory: text += "🍻 два пива\n"
+			if "Beer" in inventory: text += "• 🍻 два пива\n"
 			return text
 		"JournalToshik":
 			return "*Журнал*:\n" + _quest_line("EnterHall", "Войти в зал") \

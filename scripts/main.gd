@@ -205,6 +205,9 @@ func _build_ui() -> void:
 
 	dialog_label = RichTextLabel.new()
 	dialog_label.bbcode_enabled = true
+	# Explicit wrap: without it a long dialog line would widen the
+	# sidebar (and shrink the scene) instead of wrapping in place.
+	dialog_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_set_fit_content(dialog_label)
 	# RichTextLabel keeps a separate size per run style: overriding
 	# only normal_font_size left bold/italic runs at the default 16,
@@ -577,6 +580,7 @@ func _build_modal() -> void:
 	card_box.add_child(modal_image)
 	modal_text = RichTextLabel.new()
 	modal_text.bbcode_enabled = true
+	modal_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_set_fit_content(modal_text)
 	modal_text.add_theme_font_size_override("normal_font_size", 22)
 	modal_text.add_theme_font_size_override("bold_font_size", 22)
@@ -621,7 +625,10 @@ func _cell_style(emoji: String, is_player: bool, up_same: bool, down_same: bool,
 		# Flat frame colour behind the door texture child.
 		return _panel_style(DOOR_BORDER, Color(0, 0, 0, 0), 0)
 	if emoji == "✖️":
-		return _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 10)
+		# Square, full-cell fog: no rounding, so a run of fog cells
+		# reads as one solid darkness running down to the scene's
+		# bottom edge, not as rounded tiles floating in the corridor.
+		return _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 0)
 	# Everything else (floor, hero, characters, items) sits directly on
 	# the scene panel's background: no tile, no frame, no glow ring.
 	return _panel_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0)
@@ -756,6 +763,7 @@ func _refresh() -> void:
 			button.text = _answer_label(answer["message"])
 			button.focus_mode = FOCUS_NONE
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			button.add_theme_font_size_override("font_size", _scaled(21))
 			button.pressed.connect(_on_answer.bind(answer))
 			modal_answers.add_child(button)
@@ -778,6 +786,11 @@ func _refresh() -> void:
 				button.text = _answer_label(answer["message"])
 				button.focus_mode = FOCUS_NONE
 				button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+				# Buttons do NOT wrap by default: a long answer's
+				# minimum width (782 px measured for one) widened the
+				# whole sidebar and shrank the scene. Wrapping pins
+				# the sidebar at 380 px; only a window resize reflows.
+				button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 				button.add_theme_font_size_override("font_size", _scaled(20))
 				button.pressed.connect(_on_answer.bind(answer))
 				answers_box.add_child(button)
