@@ -42,6 +42,19 @@ func new_game() -> void:
 	open_dialog = data["start_dialog"]
 
 
+func new_game_as_nastya() -> void:
+	# Test shortcut: start directly at Nastya's story, the way ZagsEnd
+	# hands over (StartNastya, hero on her start cell, the cell
+	# cleared) but with a clean inventory and journal.
+	map_rows = initial_map_rows.duplicate()
+	pos = Vector2i(data["start_pos_nastya"][0], data["start_pos_nastya"][1])
+	_set_cell(pos, "-")
+	inventory = []
+	journal_all = []
+	journal_finished = []
+	open_dialog = "StartNastya"
+
+
 func has_save() -> bool:
 	return FileAccess.file_exists(SAVE_PATH)
 

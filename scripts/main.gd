@@ -32,7 +32,8 @@ var engine := QuestEngineScript.new()
 var vbox: VBoxContainer
 var game_row: HBoxContainer
 var hero_label: Label
-var reset_button: Button
+var reset_toshik_button: Button
+var reset_nastya_button: Button
 var scene_panel: PanelContainer
 var scene_grid: GridContainer
 var fog_overlay: Control
@@ -288,13 +289,20 @@ func _build_ui() -> void:
 	hero_label.add_theme_font_size_override("font_size", 24)
 	hero_label.add_theme_color_override("font_color", GOLD)
 	header.add_child(hero_label)
-	reset_button = Button.new()
-	reset_button.text = "Начать заново"
-	reset_button.focus_mode = FOCUS_NONE
-	reset_button.add_theme_font_size_override("font_size", 20)
-	_style_button(reset_button)
-	reset_button.pressed.connect(_on_reset)
-	header.add_child(reset_button)
+	reset_toshik_button = Button.new()
+	reset_toshik_button.text = "Заново за Тошика"
+	reset_toshik_button.focus_mode = FOCUS_NONE
+	reset_toshik_button.add_theme_font_size_override("font_size", 20)
+	_style_button(reset_toshik_button)
+	reset_toshik_button.pressed.connect(_on_reset_toshik)
+	header.add_child(reset_toshik_button)
+	reset_nastya_button = Button.new()
+	reset_nastya_button.text = "Заново за Настю"
+	reset_nastya_button.focus_mode = FOCUS_NONE
+	reset_nastya_button.add_theme_font_size_override("font_size", 20)
+	_style_button(reset_nastya_button)
+	reset_nastya_button.pressed.connect(_on_reset_nastya)
+	header.add_child(reset_nastya_button)
 	vbox.add_child(header)
 	var header_divider := Panel.new()
 	header_divider.custom_minimum_size = Vector2(0, 2)
@@ -682,7 +690,8 @@ func _refresh_fonts() -> void:
 	if hero_label == null:
 		return
 	hero_label.add_theme_font_size_override("font_size", _scaled(26))
-	reset_button.add_theme_font_size_override("font_size", _scaled(22))
+	reset_toshik_button.add_theme_font_size_override("font_size", _scaled(22))
+	reset_nastya_button.add_theme_font_size_override("font_size", _scaled(22))
 	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(25))
 	dialog_label.add_theme_font_size_override("bold_font_size", _scaled(25))
 	dialog_label.add_theme_font_size_override("italics_font_size", _scaled(25))
@@ -754,23 +763,38 @@ func _update_layout_mode() -> void:
 func _apply_cell_size() -> void:
 	if scene_grid == null or scene_panel == null or scene_cols <= 0 or scene_rows <= 0:
 		return
-	# Wide windows only: cap the scene panel at a square (its height),
-	# so on a wide monitor it does not stretch across the whole width
-	# and push the sidebar far to the right. The sidebar then sits
+	# Wide windows only: cap the scene panel at a square, so on a
+	# wide monitor it does not stretch across the whole width and
+	# push the sidebar far to the right. The sidebar then sits
 	# right next to the scene; the leftover width stays empty on the
-	# far right. A changed cap re-runs this deferred, so the cell size
-	# below is always computed from the panel's final size.
+	# far right.
+	#
+	# The cap AND the cell size derive from the viewport, never
+	# from the panel's current size: the panel's size follows the
+	# grid (content) as much as the grid follows the panel, and
+	# deriving the cell from the panel made the layout bistable —
+	# a transient tall panel could flip it to a zoomed fixed point
+	# (panel tall -> cell huge -> panel taller) that no later run
+	# corrected, which is exactly the desktop zoom bug.
+	# Chrome, wide mode: margins 14/10, header 56, divider 2,
+	# vbox separations 10+10, sidebar 380, row separation 12.
+	var cell := FALLBACK_CELL
 	if not layout_narrow and game_row != null and sidebar != null:
-		var avail_w: float = game_row.size.x - SIDEBAR_WIDTH - game_row.get_theme_constant("separation")
-		var target_w: float = min(avail_w, scene_panel.size.y)
+		var vp := get_viewport_rect().size
+		var row_w: float = vp.x - 28.0
+		var row_h: float = vp.y - 98.0
+		var target_w: float = min(row_w - SIDEBAR_WIDTH - 12.0, row_h)
 		if target_w > 0 and scene_panel.custom_minimum_size.x != target_w:
 			scene_panel.custom_minimum_size = Vector2(target_w, 0)
 			call_deferred("_apply_cell_size")
-	var cell := FALLBACK_CELL
-	var avail := scene_panel.size
-	if avail.x > 0 and avail.y > 0:
-		cell = int(min(avail.x / scene_cols, avail.y / scene_rows))
-		cell = max(cell, MIN_CELL)
+		if target_w > 0:
+			cell = int(min((target_w - 8.0) / scene_cols, (row_h - 8.0) / scene_rows))
+			cell = max(cell, MIN_CELL)
+	else:
+		var avail := scene_panel.size
+		if avail.x > 0 and avail.y > 0:
+			cell = int(min(avail.x / scene_cols, avail.y / scene_rows))
+			cell = max(cell, MIN_CELL)
 	for child in scene_grid.get_children():
 		child.custom_minimum_size = Vector2(cell, cell)
 	for entry in small_sprites:
@@ -894,9 +918,14 @@ func _refresh() -> void:
 	var answers := engine.available_answers()
 	var has_photo := "photo" in dlg
 
-	# Scene tiles.
+	# Scene tiles. Free immediately, not queue_free: the rebuild
+	# below runs synchronously, and queued cells would still be
+	# laid out with the new ones for the rest of the frame — a
+	# transient double grid that fed the panel-size feedback loop
+	# behind the desktop zoom bug (panel tall -> cell huge ->
+	# panel taller, freezing at a zoomed fixed point).
 	for child in scene_grid.get_children():
-		child.queue_free()
+		child.free()
 	animated_tiles = []
 	small_sprites = []
 	scaled_sprites = []
@@ -1193,8 +1222,14 @@ func _on_move(code: String) -> void:
 			break
 
 
-func _on_reset() -> void:
+func _on_reset_toshik() -> void:
 	engine.new_game()
+	engine.save()
+	_refresh()
+
+
+func _on_reset_nastya() -> void:
+	engine.new_game_as_nastya()
 	engine.save()
 	_refresh()
 
