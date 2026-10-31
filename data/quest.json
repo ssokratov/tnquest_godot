@@ -3694,6 +3694,11 @@
        },
        {
         "op": "replace",
+        "icon": "O",
+        "char": "-"
+       },
+       {
+        "op": "replace",
         "icon": "R",
         "char": "-"
        },
@@ -3891,6 +3896,40 @@
     }
    ],
    "player_icon": "N"
+  },
+  "FoundFearNastya": {
+   "name": "FoundFearNastya",
+   "story": "nastya",
+   "message": "Вы чувствуете прилив одиночества и отчаяния. Ваши ноги не хотят идти в этом направлении.",
+   "display_map": true,
+   "prevent_move": true,
+   "answers": [
+    {
+     "message": "i",
+     "move_to_dialog": "InventoryNastya"
+    },
+    {
+     "message": "t",
+     "move_to_dialog": "MapNastya"
+    },
+    {
+     "message": "j",
+     "move_to_dialog": "JournalNastya"
+    },
+    {
+     "message": "l",
+     "move_to_dialog": "MapNastya"
+    },
+    {
+     "message": "d",
+     "move_to_dialog": "MapNastya"
+    },
+    {
+     "message": "r",
+     "move_to_dialog": "MapNastya"
+    }
+   ],
+   "player_icon": "N"
   }
  },
  "order": [
@@ -3998,6 +4037,7 @@
   "FinalToshik",
   "CongratsRepa",
   "CongratsZhenich",
-  "CongratsCrowd"
+  "CongratsCrowd",
+  "FoundFearNastya"
  ]
 }

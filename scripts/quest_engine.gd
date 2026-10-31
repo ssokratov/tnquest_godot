@@ -72,6 +72,13 @@ func load_save() -> bool:
 	# teleport below the saved map's bottom edge.
 	while map_rows.size() < initial_map_rows.size():
 		map_rows.append(initial_map_rows[map_rows.size()])
+	# A stray Toshik-start cell ('O') survives saves made from a
+	# Nastya start (new_game_as_nastya clears only her own cell):
+	# the hero is drawn separately and never stored as a map cell,
+	# so any 'O' here is a leftover, not a character — clear it
+	# instead of leaving it to render as a missing-glyph box.
+	for y in map_rows.size():
+		map_rows[y] = (map_rows[y] as String).replace("O", "-")
 	pos = Vector2i(save["pos"][0], save["pos"][1])
 	inventory = (save["inventory"] as Array).duplicate()
 	journal_all = (save["journal_all"] as Array).duplicate()
@@ -251,16 +258,31 @@ func _move_to(target: Vector2i) -> void:
 		return
 	var ch := _cell(target)
 	var by_icon := _map_icon_dialogs()
+	var dialog_name := ""
 	if ch in by_icon:
+		dialog_name = by_icon[ch]
+	# Nastya bumps into Toshik's-area walls and fog with her own
+	# lines: '#' and '~' are bound to Toshik's dialogs, and the
+	# header follows the dialog's hero, so without this she would
+	# turn into Toshik (masculine "Уперся", MapToshik movement)
+	# until she talks to a Nastya character. The hero is the
+	# current dialog's player: movement and answer dialogs alike
+	# carry it, so this holds for D-pad steps and teleports.
+	if current_dialog().get("player_icon", "O") == "N":
+		if ch == "#":
+			dialog_name = "FoundWallNastya"
+		elif ch == "~":
+			dialog_name = "FoundFearNastya"
+	if dialog_name != "":
 		# Only open a cell dialog the player can actually do something
 		# in: a dialog with no available answer and no hidden answer
 		# would strand them (no movement, no exit). This matters for
 		# the taxofon: Taxofon1's answers all need OrderTaxi open or
 		# the phone number, so stepping on the booth early leaves the
 		# map alone instead of softlocking.
-		var candidate: Dictionary = data["dialogs"][by_icon[ch]]
+		var candidate: Dictionary = data["dialogs"][dialog_name]
 		if _dialog_has_actions(candidate):
-			open_dialog = by_icon[ch]
+			open_dialog = dialog_name
 	var dlg := current_dialog()
 	if not dlg.get("prevent_move", false):
 		pos = target

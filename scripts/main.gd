@@ -1662,9 +1662,15 @@ func _sprite_for_emoji(emoji: String) -> String:
 	# The engine's visible window is emoji-only, so map NPCs back to
 	# sprites through the emoji table (data/quest.json "emoji" is the
 	# inverse of this map in practice: each NPC has a unique emoji).
+	# Hero icons are NOT excluded: the centre (hero) cell never
+	# reaches this function (the player branch draws it directly),
+	# so a stray 'O'/'N' cell anywhere else is a real character
+	# standing there and must get its sprite — excluding them made
+	# such cells fall back to an emoji text label, which renders as
+	# missing-glyph hex boxes on Web.
 	var table := engine.data["emoji"] as Dictionary
 	for ch in SPRITES:
-		if table.get(ch, ch) == emoji and ch not in ["O", "N"]:
+		if table.get(ch, ch) == emoji:
 			return SPRITES[ch]
 	return ""
 
