@@ -1430,6 +1430,13 @@ func _refresh() -> void:
 		button.disabled = not found
 		button.modulate = Color(1, 1, 1, 1) if found else Color(1, 1, 1, 0.35)
 	_release_text_focus()
+	# Mobile: tapping the field inside the scrollable sidebar often
+	# fails to focus it (the list intercepts the tap as a swipe), so
+	# typed text goes nowhere. Focus it as soon as a hidden-answer
+	# dialog opens: the virtual keyboard opens at once, in the tap's
+	# own gesture, and no tap on the field is needed at all.
+	if sidebar.visible and input_block.visible:
+		text_input.grab_focus()
 
 
 func _release_text_focus() -> void:
