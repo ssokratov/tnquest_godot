@@ -42,6 +42,36 @@ def add_alpha(im: Image.Image) -> Image.Image:
     return Image.fromarray(arr, "RGBA")
 
 
+def decontaminate(im: Image.Image) -> Image.Image:
+    """Remove the white fringe left by background removal.
+
+    Edge pixels blended with the white sheet background stay opaque and
+    whitish, which reads as white specks on the game's dark scene. For
+    each opaque near-white pixel that touches transparency, copy the
+    colour of the nearest opaque non-white pixel — but only when that
+    pixel is within 2.5 px, so large genuinely white areas (shirts,
+    coat trim) keep their colour apart from a thin rim at most.
+    """
+    arr = np.array(im).copy()
+    alpha = arr[..., 3]
+    opaque = alpha > 128
+    if not opaque.any():
+        return im
+    rgb = arr[..., :3].astype(np.int16)
+    near_white = (rgb.min(axis=2) > 200) & ((rgb.max(axis=2) - rgb.min(axis=2)) < 40)
+    near_transp = ndimage.binary_dilation(~opaque, iterations=1)
+    cand = opaque & near_white & near_transp
+    keep = opaque & ~near_white
+    if not keep.any() or not cand.any():
+        return im
+    dist, inds = ndimage.distance_transform_edt(~keep, return_indices=True)
+    ys, xs = np.where(cand & (dist <= 2.5))
+    for y, x in zip(ys, xs):
+        ny, nx = inds[0][y, x], inds[1][y, x]
+        arr[y, x, :3] = arr[ny, nx, :3]
+    return Image.fromarray(arr, "RGBA")
+
+
 def split_columns(fg: np.ndarray, count: int, min_gap: int = 40) -> list:
     """Return x-intervals of `count` foreground groups, or equal split."""
     col_has = fg.any(axis=0)
@@ -70,7 +100,7 @@ def split_columns(fg: np.ndarray, count: int, min_gap: int = 40) -> list:
 
 
 def process(im: Image.Image, names: list, height: int, animated: bool):
-    im = add_alpha(im)
+    im = decontaminate(add_alpha(im))
     arr = np.array(im)
     fg = arr[..., 3] > 10
     intervals = split_columns(fg, len(names))
@@ -112,7 +142,7 @@ def main():
     process(Image.open(SRC / "media-generation-sheet-items-0-313fc9cb-fd90-4228-bf3d-70835cdef586.png"),
             ["monocle", "extinguisher", "boots", "key", "shoe", "taxofon"], 384, False)
     print("fire (sheet frames are the animation, no bob copies):")
-    im = add_alpha(Image.open(SRC / "media-generation-fire-sheet-0-dedcf309-9658-4a1a-9df0-638808fd4352.png"))
+    im = decontaminate(add_alpha(Image.open(SRC / "media-generation-fire-sheet-0-dedcf309-9658-4a1a-9df0-638808fd4352.png")))
     arr = np.array(im)
     fg = arr[..., 3] > 10
     for name, (x0, x1) in zip(["fire_0", "fire_1", "fire_2"], split_columns(fg, 3)):

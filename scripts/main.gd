@@ -1,47 +1,66 @@
 extends Control
 ## UI for the tn2019quest Godot port, indie-quest style.
 ##
-## Layout, top to bottom:
-##   header (hero + restart) | scene panel (tile map) | dialog box |
-##   action chips + D-pad | hint.
+## Layout: header (hero + restart) on top; below it the game row with
+## the scene panel on the left and a sidebar on the right holding the
+## dialog text, answer buttons, inventory/journal buttons and the D-pad.
+## On narrow windows (phones, portrait) the sidebar moves under the
+## scene instead. The scene tiles scale to fill the scene panel, so the
+## sprites stay large on wide windows instead of sitting tiny in the
+## middle of an empty panel.
 ## Dialog photos are NOT a separate element below the text: they open as a
 ## modal card over the scene (dimmed background, image + text + answers
 ## inside the card), so the photo intercepts control until you answer.
 ##
-## Map tiles are drawn as panels (coloured by tile type) with a sprite or
-## an emoji inside. Sprite tiles animate: characters cycle 3 frames,
+## No emoji anywhere in the UI chrome: the web export has no system
+## font fallback, so emoji render as tofu boxes there (desktop builds
+## hide this via system fonts). Arrows are drawn procedurally as icon
+## textures, doors and marks are coloured panels, everything else is
+## plain text. Dialog and answer texts keep their emoji on desktop, but
+## on Web they are stripped (words remain) for the same reason.
+##
+## Map tiles are drawn as panels (coloured by tile type) with a sprite
+## inside. Sprite tiles animate: characters cycle 3 frames,
 ## fire cycles faster. Game logic lives in quest_engine.gd; progress is
 ## saved automatically after every answer (user://tn2019quest_save.json).
-## Controls: click an answer, or arrows / WASD for movement answers.
+## Controls: click an answer, or arrows / WASD for movement answers
+## (physical keys, so WASD also works on a Russian layout).
 
 const QuestEngineScript := preload("res://scripts/quest_engine.gd")
 var engine := QuestEngineScript.new()
 
+var vbox: VBoxContainer
+var game_row: HBoxContainer
 var hero_label: Label
+var scene_panel: PanelContainer
 var scene_grid: GridContainer
-var dialog_panel: PanelContainer
+var sidebar: PanelContainer
 var dialog_label: RichTextLabel
-var actions_box: FlowContainer
-var dpad_panel: PanelContainer
+var answers_box: VBoxContainer
+var dpad_block: VBoxContainer
 var dpad_buttons := {}
 var hint_label: Label
 var modal: Control
 var modal_image: TextureRect
 var modal_text: RichTextLabel
 var modal_answers: VBoxContainer
-var bottom_box: VBoxContainer
 
 var animated_tiles: Array = []
 var anim_time := 0.0
+var arrow_icons := {}
+var scene_cols := 0
+var scene_rows := 0
+var layout_narrow := false
+var layout_init_done := false
 
-const TILE_SIZE := 64
-const MOVE_LABELS := {
-	"t": "⬆️", "d": "⬇️", "l": "⬅️", "r": "➡️",
-	"i": "💼", "j": "📖",
-}
+const FALLBACK_CELL := 64
+const MIN_CELL := 40
+const NARROW_WIDTH := 760
+const SIDEBAR_WIDTH := 380
+const MOVE_CODES := ["t", "d", "l", "r", "i", "j"]
 const MOVE_WORDS := {
-	"t": "⬆️ Вверх", "d": "⬇️ Вниз", "l": "⬅️ Влево", "r": "➡️ Вправо",
-	"i": "💼 Инвентарь", "j": "📖 Журнал",
+	"t": "Вверх", "d": "Вниз", "l": "Влево", "r": "Вправо",
+	"i": "Инвентарь", "j": "Журнал",
 }
 const MOVE_KEYS := {
 	KEY_UP: "t", KEY_W: "t",
@@ -107,7 +126,7 @@ func _build_ui() -> void:
 	margin.add_theme_constant_override("margin_bottom", 10)
 	add_child(margin)
 
-	var vbox := VBoxContainer.new()
+	vbox = VBoxContainer.new()
 	vbox.add_theme_constant_override("separation", 10)
 	margin.add_child(vbox)
 
@@ -117,17 +136,25 @@ func _build_ui() -> void:
 	hero_label.add_theme_font_size_override("font_size", 22)
 	header.add_child(hero_label)
 	var reset := Button.new()
-	reset.text = "↻ Начать заново"
+	reset.text = "Начать заново"
 	reset.focus_mode = FOCUS_NONE
 	reset.pressed.connect(_on_reset)
 	header.add_child(reset)
 	vbox.add_child(header)
 
+	# Game row: scene on the left, sidebar on the right (wide windows).
+	game_row = HBoxContainer.new()
+	game_row.add_theme_constant_override("separation", 12)
+	game_row.size_flags_vertical = SIZE_EXPAND_FILL
+	game_row.size_flags_stretch_ratio = 1.2
+	vbox.add_child(game_row)
+
 	# Scene panel.
-	var scene_panel := PanelContainer.new()
+	scene_panel = PanelContainer.new()
+	scene_panel.size_flags_horizontal = SIZE_EXPAND_FILL
 	scene_panel.size_flags_vertical = SIZE_EXPAND_FILL
 	scene_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.11, 0.11, 0.16), Color(0.25, 0.25, 0.35)))
-	vbox.add_child(scene_panel)
+	game_row.add_child(scene_panel)
 	var scene_center := CenterContainer.new()
 	scene_panel.add_child(scene_center)
 	scene_grid = GridContainer.new()
@@ -137,47 +164,68 @@ func _build_ui() -> void:
 	scene_grid.add_theme_constant_override("v_separation", 0)
 	scene_center.add_child(scene_grid)
 
-	# Bottom area (hidden while a photo modal is open).
-	bottom_box = VBoxContainer.new()
-	bottom_box.add_theme_constant_override("separation", 10)
-	vbox.add_child(bottom_box)
+	# Sidebar (hidden while a photo modal is open): dialog, answers,
+	# inventory/journal buttons, D-pad, hint — all scrollable.
+	sidebar = PanelContainer.new()
+	sidebar.add_theme_stylebox_override("panel", _panel_style(Color(0.14, 0.14, 0.22), Color(0.35, 0.35, 0.5)))
+	sidebar.custom_minimum_size = Vector2(SIDEBAR_WIDTH, 0)
+	sidebar.size_flags_vertical = SIZE_EXPAND_FILL
+	game_row.add_child(sidebar)
+	var sidebar_margin := MarginContainer.new()
+	sidebar_margin.add_theme_constant_override("margin_left", 14)
+	sidebar_margin.add_theme_constant_override("margin_right", 14)
+	sidebar_margin.add_theme_constant_override("margin_top", 12)
+	sidebar_margin.add_theme_constant_override("margin_bottom", 12)
+	sidebar.add_child(sidebar_margin)
+	var sidebar_scroll := ScrollContainer.new()
+	sidebar_scroll.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_scroll.size_flags_vertical = SIZE_EXPAND_FILL
+	sidebar_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sidebar_margin.add_child(sidebar_scroll)
+	var sidebar_box := VBoxContainer.new()
+	sidebar_box.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_box.add_theme_constant_override("separation", 12)
+	sidebar_scroll.add_child(sidebar_box)
 
-	dialog_panel = PanelContainer.new()
-	dialog_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.14, 0.14, 0.22), Color(0.35, 0.35, 0.5)))
-	bottom_box.add_child(dialog_panel)
-	var dialog_margin := MarginContainer.new()
-	dialog_margin.add_theme_constant_override("margin_left", 14)
-	dialog_margin.add_theme_constant_override("margin_right", 14)
-	dialog_margin.add_theme_constant_override("margin_top", 10)
-	dialog_margin.add_theme_constant_override("margin_bottom", 10)
-	dialog_panel.add_child(dialog_margin)
 	dialog_label = RichTextLabel.new()
 	dialog_label.bbcode_enabled = true
 	_set_fit_content(dialog_label)
 	dialog_label.add_theme_font_size_override("normal_font_size", 19)
-	dialog_margin.add_child(dialog_label)
+	dialog_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_box.add_child(dialog_label)
 
-	# Actions (text answers) + D-pad row.
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	bottom_box.add_child(row)
-	actions_box = FlowContainer.new()
-	actions_box.size_flags_horizontal = SIZE_EXPAND_FILL
-	actions_box.add_theme_constant_override("h_separation", 8)
-	actions_box.add_theme_constant_override("v_separation", 8)
-	row.add_child(actions_box)
+	answers_box = VBoxContainer.new()
+	answers_box.add_theme_constant_override("separation", 8)
+	answers_box.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_box.add_child(answers_box)
 
-	dpad_panel = PanelContainer.new()
-	dpad_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.14, 0.14, 0.22), Color(0.3, 0.3, 0.45), 10))
-	row.add_child(dpad_panel)
+	# D-pad block: inventory/journal as text buttons above the arrow pad.
+	dpad_block = VBoxContainer.new()
+	dpad_block.add_theme_constant_override("separation", 8)
+	dpad_block.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_box.add_child(dpad_block)
+	var inv_row := HBoxContainer.new()
+	inv_row.add_theme_constant_override("separation", 8)
+	dpad_block.add_child(inv_row)
+	for code in ["i", "j"]:
+		var button := Button.new()
+		button.text = MOVE_WORDS[code]
+		button.size_flags_horizontal = SIZE_EXPAND_FILL
+		button.focus_mode = FOCUS_NONE
+		button.add_theme_font_size_override("font_size", 16)
+		button.pressed.connect(_on_move.bind(code))
+		inv_row.add_child(button)
+		dpad_buttons[code] = button
+	var dpad_center := CenterContainer.new()
+	dpad_block.add_child(dpad_center)
 	var dpad := GridContainer.new()
 	dpad.columns = 3
 	dpad.add_theme_constant_override("h_separation", 4)
 	dpad.add_theme_constant_override("v_separation", 4)
-	dpad_panel.add_child(dpad)
-	# Row 1: inventory / up / journal; row 2: left / centre / right;
+	dpad_center.add_child(dpad)
+	# Row 1: (empty) / up / (empty); row 2: left / centre / right;
 	# row 3: (empty) / down / (empty).
-	var dpad_layout := ["i", "t", "j", "l", "", "r", "", "d", ""]
+	var dpad_layout := ["", "t", "", "l", "", "r", "", "d", ""]
 	for code in dpad_layout:
 		if code == "":
 			var spacer := Control.new()
@@ -185,20 +233,119 @@ func _build_ui() -> void:
 			dpad.add_child(spacer)
 		else:
 			var button := Button.new()
-			button.text = MOVE_LABELS[code]
+			button.icon = _arrow_icon(code)
+			button.expand_icon = true
 			button.custom_minimum_size = Vector2(52, 52)
 			button.focus_mode = FOCUS_NONE
-			button.add_theme_font_size_override("font_size", 22)
 			button.pressed.connect(_on_move.bind(code))
 			dpad.add_child(button)
 			dpad_buttons[code] = button
 
 	hint_label = Label.new()
-	hint_label.text = "Стрелки / WASD — движение, когда оно предлагается. Прогресс сохраняется автоматически."
+	hint_label.text = "Стрелки / WASD или кнопки — движение, когда оно предлагается. Прогресс сохраняется автоматически."
+	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	hint_label.add_theme_font_size_override("font_size", 13)
-	bottom_box.add_child(hint_label)
+	hint_label.size_flags_horizontal = SIZE_EXPAND_FILL
+	sidebar_box.add_child(hint_label)
 
 	_build_modal()
+	get_viewport().size_changed.connect(_on_viewport_resized)
+	call_deferred("_update_layout_mode")
+	call_deferred("_apply_cell_size")
+
+
+# --- procedural arrow icons (font-independent, so Web never shows tofu) ---
+
+func _in_triangle(px: float, py: float, ax: float, ay: float, bx: float, by: float, cx: float, cy: float) -> bool:
+	var d1 := (px - bx) * (ay - by) - (ax - bx) * (py - by)
+	var d2 := (px - cx) * (by - cy) - (bx - cx) * (py - cy)
+	var d3 := (px - ax) * (cy - ay) - (cx - ax) * (py - ay)
+	var has_neg := (d1 < 0) or (d2 < 0) or (d3 < 0)
+	var has_pos := (d1 > 0) or (d2 > 0) or (d3 > 0)
+	return not (has_neg and has_pos)
+
+
+func _arrow_icon(code: String) -> Texture2D:
+	if code in arrow_icons:
+		return arrow_icons[code]
+	var s := 96
+	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+	var col := Color(0.87, 0.89, 0.95, 1)
+	for y in s:
+		for x in s:
+			var inside := false
+			match code:
+				"t":
+					inside = _in_triangle(x, y, 48, 8, 16, 48, 80, 48) or (x >= 38 and x <= 58 and y >= 48 and y <= 88)
+				"d":
+					inside = _in_triangle(x, y, 48, 88, 16, 48, 80, 48) or (x >= 38 and x <= 58 and y >= 8 and y <= 48)
+				"l":
+					inside = _in_triangle(x, y, 8, 48, 48, 16, 48, 80) or (y >= 38 and y <= 58 and x >= 48 and x <= 88)
+				"r":
+					inside = _in_triangle(x, y, 88, 48, 48, 16, 48, 80) or (y >= 38 and y <= 58 and x >= 8 and x <= 48)
+			if inside:
+				img.set_pixel(x, y, col)
+	var tex := ImageTexture.create_from_image(img)
+	arrow_icons[code] = tex
+	return tex
+
+
+# --- responsive layout + scene scaling --------------------------------------
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED:
+		call_deferred("_update_layout_mode")
+		call_deferred("_apply_cell_size")
+
+
+func _on_viewport_resized() -> void:
+	_update_layout_mode()
+	_apply_cell_size()
+
+
+func _update_layout_mode() -> void:
+	if sidebar == null or game_row == null or vbox == null:
+		return
+	var narrow := get_viewport_rect().size.x < NARROW_WIDTH
+	if layout_init_done and narrow == layout_narrow:
+		return
+	layout_narrow = narrow
+	layout_init_done = true
+	if narrow:
+		# Controls under the scene: sidebar leaves the game row and
+		# becomes the vbox's last child, sharing vertical space.
+		if sidebar.get_parent() == game_row:
+			game_row.remove_child(sidebar)
+		if sidebar.get_parent() != vbox:
+			vbox.add_child(sidebar)
+		sidebar.custom_minimum_size = Vector2(0, 0)
+		sidebar.size_flags_horizontal = SIZE_EXPAND_FILL
+		sidebar.size_flags_vertical = SIZE_EXPAND_FILL
+		sidebar.size_flags_stretch_ratio = 0.9
+		game_row.size_flags_stretch_ratio = 1.2
+	else:
+		if sidebar.get_parent() == vbox:
+			vbox.remove_child(sidebar)
+		if sidebar.get_parent() != game_row:
+			game_row.add_child(sidebar)
+		sidebar.custom_minimum_size = Vector2(SIDEBAR_WIDTH, 0)
+		sidebar.size_flags_horizontal = SIZE_FILL
+		sidebar.size_flags_vertical = SIZE_EXPAND_FILL
+		sidebar.size_flags_stretch_ratio = 1.0
+		game_row.size_flags_stretch_ratio = 1.0
+	call_deferred("_apply_cell_size")
+
+
+func _apply_cell_size() -> void:
+	if scene_grid == null or scene_panel == null or scene_cols <= 0 or scene_rows <= 0:
+		return
+	var cell := FALLBACK_CELL
+	var avail := scene_panel.size
+	if avail.x > 0 and avail.y > 0:
+		cell = int(min(avail.x / scene_cols, avail.y / scene_rows))
+		cell = max(cell, MIN_CELL)
+	for child in scene_grid.get_children():
+		child.custom_minimum_size = Vector2(cell, cell)
 
 
 func _set_fit_content(label: RichTextLabel) -> void:
@@ -283,22 +430,19 @@ func _merged_style(bg: Color, up: bool, down: bool, left: bool, right: bool) -> 
 
 func _cell_style(emoji: String, is_player: bool, up_same: bool, down_same: bool, left_same: bool, right_same: bool) -> StyleBoxFlat:
 	# Styled by emoji, because the engine's visible window is emoji-only.
-	# Wall/road share one emoji each, which is all merging needs.
-	if is_player:
-		# Soft round glow behind the hero, not a square frame.
-		var glow := StyleBoxFlat.new()
-		glow.bg_color = Color(1, 0.85, 0.2, 0.16)
-		glow.corner_radius_top_left = 32
-		glow.corner_radius_top_right = 32
-		glow.corner_radius_bottom_left = 32
-		glow.corner_radius_bottom_right = 32
-		return glow
+	# Wall/road share one emoji each, which is all merging needs. No
+	# emoji glyph is ever drawn as text: doors and marks are coloured
+	# panels, so the web build cannot show tofu for them.
 	if emoji == "⬛️":
 		return _merged_style(Color(0.29, 0.29, 0.4), up_same, down_same, left_same, right_same)
 	if emoji == "🕳":
 		return _merged_style(Color(0.24, 0.24, 0.33), up_same, down_same, left_same, right_same)
-	# Everything else (floor, characters, items, doors) sits directly on
-	# the scene panel's background: no tile, no frame.
+	if emoji == "🚪":
+		return _panel_style(Color(0.45, 0.32, 0.2), Color(0.28, 0.19, 0.11), 8)
+	if emoji == "✖️":
+		return _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 10)
+	# Everything else (floor, hero, characters, items) sits directly on
+	# the scene panel's background: no tile, no frame, no glow ring.
 	return _panel_style(Color(0, 0, 0, 0), Color(0, 0, 0, 0), 0)
 
 
@@ -321,7 +465,7 @@ func _sprite_frames(name: String) -> Array:
 func _refresh() -> void:
 	var dlg := engine.current_dialog()
 	hero_label.text = "Герой: " + engine.hero_name()
-	var message := _markdown_to_bbcode(engine.current_message())
+	var message := _markdown_to_bbcode(_strip_emoji(engine.current_message()))
 	var answers := engine.available_answers()
 	var has_photo := "photo" in dlg
 
@@ -330,13 +474,15 @@ func _refresh() -> void:
 		child.queue_free()
 	animated_tiles = []
 	var tiles: Array = engine.visible_tiles()
-	scene_grid.columns = tiles[0].size()
+	scene_cols = tiles[0].size()
+	scene_rows = tiles.size()
+	scene_grid.columns = scene_cols
 	var centre := tiles.size() / 2
 	var dlg_hero: String = dlg.get("player_icon", "O")
 	for y in tiles.size():
 		for x in tiles[y].size():
 			var cell := PanelContainer.new()
-			cell.custom_minimum_size = Vector2(TILE_SIZE, TILE_SIZE)
+			cell.custom_minimum_size = Vector2(FALLBACK_CELL, FALLBACK_CELL)
 			var is_player: bool = x == centre and y == centre
 			var emoji: String = tiles[y][x]
 			var same := func(nx: int, ny: int) -> bool:
@@ -348,9 +494,10 @@ func _refresh() -> void:
 				same.call(x, y - 1), same.call(x, y + 1),
 				same.call(x - 1, y), same.call(x + 1, y)))
 			scene_grid.add_child(cell)
-			# Walls, roads and bare floor are pure background shapes:
-			# nothing is drawn inside them.
-			if not is_player and emoji in ["⬛️", "🕳", "▫️"]:
+			# Walls, roads, bare floor, doors and marks are pure
+			# background shapes: nothing is drawn inside them (their
+			# emoji are never rendered as text, so no tofu on Web).
+			if not is_player and emoji in ["⬛️", "🕳", "▫️", "🚪", "✖️"]:
 				continue
 			if is_player:
 				var frames := _sprite_frames(SPRITES.get(dlg_hero, "toshik"))
@@ -386,9 +533,11 @@ func _refresh() -> void:
 				else:
 					_add_emoji_cell(cell, tiles[y][x])
 
-	# Bottom UI vs photo modal.
+	_apply_cell_size()
+
+	# Sidebar vs photo modal.
 	if has_photo:
-		bottom_box.visible = false
+		sidebar.visible = false
 		# No size cap here any more: the TextureRect expands to fill the
 		# card (minus text and answers) and scales the photo up or down
 		# to fit, keeping its aspect ratio.
@@ -407,13 +556,13 @@ func _refresh() -> void:
 		modal.visible = true
 	else:
 		modal.visible = false
-		bottom_box.visible = true
+		sidebar.visible = true
 		dialog_label.text = message
-		for child in actions_box.get_children():
+		for child in answers_box.get_children():
 			child.queue_free()
 		var has_move := false
 		for answer in answers:
-			if answer["message"] in MOVE_LABELS:
+			if answer["message"] in MOVE_CODES:
 				has_move = true
 			else:
 				var button := Button.new()
@@ -422,8 +571,8 @@ func _refresh() -> void:
 				button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 				button.add_theme_font_size_override("font_size", 17)
 				button.pressed.connect(_on_answer.bind(answer))
-				actions_box.add_child(button)
-		dpad_panel.visible = has_move
+				answers_box.add_child(button)
+		dpad_block.visible = has_move
 		for code in dpad_buttons:
 			var found := false
 			for answer in answers:
@@ -458,7 +607,25 @@ func _sprite_for_emoji(emoji: String) -> String:
 func _answer_label(message: String) -> String:
 	if message in MOVE_WORDS:
 		return MOVE_WORDS[message]
-	return message.replace("*", "").replace("_", "")
+	return _strip_emoji(message).replace("*", "").replace("_", "").strip_edges()
+
+
+# On Web there is no system font fallback, so any emoji in a dialog or
+# answer text renders as a tofu box. Strip emoji codepoints there (the
+# words stay); on desktop the texts are shown untouched, emoji included.
+func _strip_emoji(text: String) -> String:
+	if OS.get_name() != "Web":
+		return text
+	var out := ""
+	for i in text.length():
+		var cp := text.unicode_at(i)
+		if cp == 0x200D or (cp >= 0xFE00 and cp <= 0xFE0F) \
+				or (cp >= 0x2600 and cp <= 0x27BF) \
+				or (cp >= 0x2B00 and cp <= 0x2BFF) \
+				or (cp >= 0x1F000 and cp <= 0x1FAFF):
+			continue
+		out += text[i]
+	return out.replace("  ", " ")
 
 
 func _on_answer(answer: Dictionary) -> void:
@@ -482,7 +649,16 @@ func _on_reset() -> void:
 
 func _input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not event.echo:
-		var key := (event as InputEventKey).keycode
+		var ev := event as InputEventKey
+		# Physical key, not logical keycode: with a Russian layout the
+		# same physical key produces Ц instead of W, so keycode-based
+		# WASD silently stops working. Physical keys are layout-free
+		# (and identical to keycode for arrows). Defining the actions
+		# in project settings would need the same physical_keycode
+		# values, so the fix belongs here either way.
+		var key := ev.physical_keycode
+		if key == 0:
+			key = ev.keycode
 		if key in MOVE_KEYS:
 			_on_move(MOVE_KEYS[key])
 
