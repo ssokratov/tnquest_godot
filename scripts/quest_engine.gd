@@ -157,8 +157,10 @@ func apply_answer(answer: Dictionary) -> void:
 
 func visible_tiles() -> Array:
 	# Returns rows of emoji strings, hero icon in the centre.
-	var radius := 2 if "Glasses" in inventory else 1
+	# Nastya sees a 5x5 window from the start (like Toshik with the
+	# monocle); Toshik needs the monocle (Glasses) for the wide view.
 	var dlg := current_dialog()
+	var radius := 2 if ("Glasses" in inventory or dlg.get("story", "") == "nastya") else 1
 	var hero_emoji: String = _emoji(dlg.get("player_icon", "O"))
 	var rows: Array = []
 	for dy in range(-radius, radius + 1):

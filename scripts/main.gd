@@ -60,6 +60,7 @@ var animated_tiles: Array = []
 # Characters do not cycle frames: they squash (see _process).
 var squash_sprites: Array = []
 var small_sprites: Array = []
+var card_sprites: Array = []
 var scaled_sprites: Array = []
 var anim_time := 0.0
 var arrow_icons := {}
@@ -104,6 +105,10 @@ const MOVE_KEYS := {
 # render at CHAR_SPRITE_SCALE (see SPRITE_SCALE) so their heads clear
 # the cell edge.
 const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe"]
+# Items drawn as a note/photo card lying on the floor: the sprite
+# itself is untouched, it is composited at runtime onto a procedural
+# ivory card (slightly rotated, soft shadow). Only "shoe" for now.
+const CARD_ITEM_SPRITES := ["shoe"]
 # Big static items: a phone booth is furniture, not a pocket item —
 # it gets character height but never squashes like a character.
 const BIG_ITEM_SPRITES := {"taxofon": 0.9}
@@ -212,6 +217,24 @@ func _button_min_height() -> int:
 	if get_viewport_rect().size.x < NARROW_WIDTH:
 		return 64
 	return 56
+
+
+func _dialog_button_min_height() -> int:
+	# Dialog-area buttons (answers, inventory/journal, submit) are
+	# taller than the header buttons on narrow windows, where the
+	# user reads them as the main controls. Desktops keep 56.
+	if get_viewport_rect().size.x < NARROW_WIDTH:
+		return 76
+	return 56
+
+
+func _dpad_button_size() -> int:
+	# Arrow buttons are square; bigger on narrow windows (their
+	# icons scale via expand_icon). Wide keeps 52 wide; the height
+	# there stays the 56 floor from _button_min_height().
+	if get_viewport_rect().size.x < NARROW_WIDTH:
+		return 64
+	return 52
 
 
 func _set_button_height(button: Button, h: int) -> void:
@@ -537,6 +560,7 @@ func _build_ui() -> void:
 	submit_button.focus_mode = FOCUS_NONE
 	submit_button.add_theme_font_size_override("font_size", 20)
 	_style_button(submit_button)
+	_set_button_height(submit_button, _dialog_button_min_height())
 	submit_button.pressed.connect(_on_text_submit)
 	input_row.add_child(submit_button)
 	feedback_label = Label.new()
@@ -568,6 +592,7 @@ func _build_ui() -> void:
 		button.focus_mode = FOCUS_NONE
 		button.add_theme_font_size_override("font_size", 18)
 		_style_button(button)
+		_set_button_height(button, _dialog_button_min_height())
 		button.pressed.connect(_on_move.bind(code))
 		inv_row.add_child(button)
 		dpad_buttons[code] = button
@@ -580,16 +605,17 @@ func _build_ui() -> void:
 	# Row 1: (empty) / up / (empty); row 2: left / centre / right;
 	# row 3: (empty) / down / (empty).
 	var dpad_layout := ["", "t", "", "l", "", "r", "", "d", ""]
+	var ds := _dpad_button_size()
 	for code in dpad_layout:
 		if code == "":
 			var spacer := Control.new()
-			spacer.custom_minimum_size = Vector2(52, 52)
+			spacer.custom_minimum_size = Vector2(ds, ds)
 			dpad.add_child(spacer)
 		else:
 			var button := Button.new()
 			button.icon = _arrow_icon(code)
 			button.expand_icon = true
-			button.custom_minimum_size = Vector2(52, 52)
+			button.custom_minimum_size = Vector2(ds, ds)
 			button.focus_mode = FOCUS_NONE
 			_style_button(button)
 			button.pressed.connect(_on_move.bind(code))
@@ -807,18 +833,34 @@ func _refresh_fonts() -> void:
 	# Button tap targets follow the viewport: taller on narrow
 	# windows (phones), standard on desktops. Recomputed here so a
 	# rotation or window resize updates buttons built earlier.
+	# Header buttons use the standard height; dialog-area buttons
+	# (answers, inventory/journal, submit) are taller on narrow;
+	# arrow buttons are square and bigger on narrow (their icons
+	# scale via expand_icon).
 	var bh := _button_min_height()
+	var dbh := _dialog_button_min_height()
+	var ds := _dpad_button_size()
 	_set_button_height(reset_toshik_button, bh)
 	_set_button_height(reset_nastya_button, bh)
-	_set_button_height(submit_button, bh)
+	_set_button_height(submit_button, dbh)
 	for code in dpad_buttons:
-		_set_button_height(dpad_buttons[code] as Button, bh)
+		var db := dpad_buttons[code] as Button
+		if db == null:
+			continue
+		if code in ["i", "j"]:
+			_set_button_height(db, dbh)
+		else:
+			db.custom_minimum_size = Vector2(ds, bh)
+	if dpad_pad != null:
+		for child in dpad_pad.get_children():
+			if not (child is Button):
+				(child as Control).custom_minimum_size = Vector2(ds, ds)
 	if answers_box != null:
 		for child in answers_box.get_children():
-			_set_button_height(child as Button, bh)
+			_set_button_height(child as Button, dbh)
 	if inv_row != null:
 		for child in inv_row.get_children():
-			_set_button_height(child as Button, bh)
+			_set_button_height(child as Button, dbh)
 
 
 func _notification(what: int) -> void:
@@ -919,6 +961,26 @@ func _apply_cell_size() -> void:
 		child.custom_minimum_size = Vector2(cell, cell)
 	for entry in small_sprites:
 		entry["node"].custom_minimum_size = Vector2(cell / 2, cell / 2)
+	for entry in card_sprites:
+		# Photo card: 0.8 x 0.66 of a cell (matches the shoe's own
+		# aspect), rotated -0.1 rad; the rotated bounding box
+		# (0.86 x 0.74) still fits its cell. The shoe sits inside
+		# with a small ivory margin, like a picture on the card.
+		var cw := cell * 0.8
+		var ch := cell * 0.66
+		var m := cell * 0.06
+		var card: Control = entry["card"]
+		card.custom_minimum_size = Vector2(cw, ch)
+		card.pivot_offset = Vector2(cw / 2, ch / 2)
+		var shadow: ColorRect = entry["shadow"]
+		shadow.position = Vector2(cell * 0.03, cell * 0.045)
+		shadow.size = Vector2(cw, ch)
+		var paper: Panel = entry["paper"]
+		paper.position = Vector2.ZERO
+		paper.size = Vector2(cw, ch)
+		var shoe: TextureRect = entry["shoe"]
+		shoe.position = Vector2(m, m)
+		shoe.custom_minimum_size = Vector2(cw - 2 * m, ch - 2 * m)
 	for entry in scaled_sprites:
 		var s: float = entry["scale"]
 		entry["node"].custom_minimum_size = Vector2(cell * s, cell * s)
@@ -1048,6 +1110,7 @@ func _refresh() -> void:
 		child.free()
 	animated_tiles = []
 	small_sprites = []
+	card_sprites = []
 	scaled_sprites = []
 	squash_sprites = []
 	var fog_cells: Array = []
@@ -1150,7 +1213,26 @@ func _refresh() -> void:
 						sprite.texture = frames[0]
 						sprite.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 						sprite.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-						if sprite_name in ITEM_SPRITES:
+						if sprite_name in CARD_ITEM_SPRITES:
+							# A note/photo card lying on the floor: the
+							# sprite PNG is untouched, it is composited
+							# onto a procedural ivory card (rotated a
+							# touch, soft shadow). Exact sizes are fixed
+							# up in _apply_cell_size like other sprites.
+							var cwrap := CenterContainer.new()
+							var card := Control.new()
+							card.rotation = -0.1
+							var shadow := ColorRect.new()
+							shadow.color = Color(0, 0, 0, 0.25)
+							card.add_child(shadow)
+							var paper := Panel.new()
+							paper.add_theme_stylebox_override("panel", _panel_style(PARCHMENT, Color(0.55, 0.45, 0.30), 4))
+							card.add_child(paper)
+							card.add_child(sprite)
+							cwrap.add_child(card)
+							cell.add_child(cwrap)
+							card_sprites.append({"card": card, "shadow": shadow, "paper": paper, "shoe": sprite})
+						elif sprite_name in ITEM_SPRITES:
 							# Half-size, centered in its cell; the
 							# exact size is fixed up in _apply_cell_size.
 							var wrap := CenterContainer.new()
@@ -1184,7 +1266,7 @@ func _refresh() -> void:
 						if sprite_name == "fire":
 							if frames.size() > 1:
 								animated_tiles.append({"node": sprite, "frames": frames, "interval": 0.18, "elapsed": 0.0, "idx": 0})
-						elif sprite_name not in ITEM_SPRITES and sprite_name not in BIG_ITEM_SPRITES:
+						elif sprite_name not in ITEM_SPRITES and sprite_name not in BIG_ITEM_SPRITES and sprite_name not in CARD_ITEM_SPRITES:
 							squash_sprites.append({"node": sprite, "phase": squash_sprites.size() * 0.9})
 					else:
 						_add_emoji_cell(cell, tiles[y][x])
@@ -1224,6 +1306,7 @@ func _refresh() -> void:
 			child.queue_free()
 		animated_tiles = []
 		small_sprites = []
+		card_sprites = []
 		scaled_sprites = []
 		squash_sprites = []
 		showing_photo = true
@@ -1256,6 +1339,11 @@ func _refresh() -> void:
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			button.add_theme_font_size_override("font_size", _scaled(23))
 			_style_button(button)
+			# Answer text is left-aligned: it needs a left pad so it
+			# stops hugging the gold border (header buttons got the
+			# same 18 px earlier).
+			_pad_button_sides(button, 18)
+			_set_button_height(button, _dialog_button_min_height())
 			button.pressed.connect(_on_answer.bind(answer))
 			answers_box.add_child(button)
 	dpad_block.visible = has_move
