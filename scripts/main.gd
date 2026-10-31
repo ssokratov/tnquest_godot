@@ -68,6 +68,11 @@ var scene_cols := 0
 var scene_rows := 0
 var layout_narrow := false
 var layout_init_done := false
+# Mobile dialog sheet: in narrow layout, a dialog with no movement
+# arrows expands the sidebar into a full sheet covering the scene.
+var dialog_expanded := false
+var dialog_expand_tween: Tween
+var dialog_expand_from_top := 0.0
 
 const FALLBACK_CELL := 64
 const MIN_CELL := 40
@@ -234,10 +239,12 @@ func _button_min_height() -> int:
 func _dialog_button_min_height() -> int:
 	# Dialog-area buttons (answers, inventory/journal, submit) are
 	# much taller than the header buttons in narrow layout, where
-	# the user reads them as the main controls: 132 px is close to
-	# double the old 76, for reliable tapping. Desktops keep 56.
+	# the user reads them as the main controls: 112 px is exactly
+	# double the old 56 (and matches the arrow pads), and with the
+	# expanded dialog sheet every answer list fits without scrolling.
+	# Desktops keep 56.
 	if _is_narrow_window():
-		return 132
+		return 112
 	return 56
 
 
@@ -938,6 +945,13 @@ func _update_layout_mode() -> void:
 		return
 	layout_narrow = narrow
 	layout_init_done = true
+	# A layout-mode switch re-parents the sidebar; an overlaid sheet
+	# must return to the vbox first, or the branches below would move
+	# it to the wrong parent. Instant: rotation already jumps anyway.
+	if dialog_expanded:
+		if dialog_expand_tween != null and dialog_expand_tween.is_valid():
+			dialog_expand_tween.kill()
+		_finish_dialog_collapse()
 	if narrow:
 		# Controls under the scene: sidebar leaves the game row and
 		# becomes the vbox's last child, sharing vertical space.
@@ -969,6 +983,79 @@ func _update_layout_mode() -> void:
 		game_row.size_flags_stretch_ratio = 1.0
 		# The panel's width cap itself is set by _apply_cell_size.
 		scene_panel.size_flags_horizontal = SIZE_SHRINK_CENTER
+	call_deferred("_apply_cell_size")
+	call_deferred("_update_dialog_expansion")
+
+func _update_dialog_expansion(instant: bool = false) -> void:
+	# Mobile dialog sheet: in narrow layout, a dialog with no
+	# movement arrows (a pure choice list) grows the sidebar into
+	# a full sheet that covers the scene, so every answer fits
+	# without scrolling. Movement dialogs keep the stacked
+	# scene+sidebar (the player needs the scene and the arrows to
+	# walk), and photo dialogs keep the photo visible. The sheet
+	# is the sidebar itself, reparented to the root and slid up
+	# over the scene (its panel is opaque); the vbox layout is
+	# untouched, so there is no cell-size fight: the scene simply
+	# sits behind the sheet until the dialog collapses.
+	if sidebar == null or game_row == null or vbox == null:
+		return
+	if not layout_init_done:
+		return
+	# Not laid out yet (startup): retry after the first layout.
+	if sidebar.get_global_rect().size == Vector2.ZERO or game_row.get_global_rect().size == Vector2.ZERO:
+		call_deferred("_update_dialog_expansion")
+		return
+	var want := _is_narrow_window() and not showing_photo
+	if want:
+		for code in ["t", "d", "l", "r"]:
+			if code in dpad_buttons and not (dpad_buttons[code] as Button).disabled:
+				want = false
+				break
+	var tween_running := dialog_expand_tween != null and dialog_expand_tween.is_valid() and dialog_expand_tween.is_running()
+	if want == dialog_expanded and not tween_running:
+		return
+	if dialog_expand_tween != null and dialog_expand_tween.is_valid():
+		dialog_expand_tween.kill()
+	if want:
+		var target_top := game_row.get_global_rect().position.y
+		if sidebar.get_parent() != self:
+			dialog_expand_from_top = sidebar.get_global_rect().position.y
+			sidebar.get_parent().remove_child(sidebar)
+			add_child(sidebar)
+			sidebar.set_anchors_preset(PRESET_FULL_RECT)
+			sidebar.offset_left = 14
+			sidebar.offset_right = -14
+			sidebar.offset_bottom = -10
+			sidebar.offset_top = dialog_expand_from_top
+		dialog_expanded = true
+		if instant:
+			sidebar.offset_top = target_top
+		else:
+			dialog_expand_tween = create_tween()
+			dialog_expand_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+			dialog_expand_tween.tween_property(sidebar, "offset_top", target_top, 0.3)
+	else:
+		if sidebar.get_parent() == self:
+			if instant:
+				_finish_dialog_collapse()
+			else:
+				dialog_expand_tween = create_tween()
+				dialog_expand_tween.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_IN_OUT)
+				dialog_expand_tween.tween_property(sidebar, "offset_top", dialog_expand_from_top, 0.3)
+				dialog_expand_tween.finished.connect(_finish_dialog_collapse, CONNECT_ONE_SHOT)
+		else:
+			dialog_expanded = false
+
+
+func _finish_dialog_collapse() -> void:
+	# Back to the vbox's last child (the narrow stacked slot); the
+	# wide branch of _update_layout_mode moves it on if needed.
+	# Cells were sized for the overlaid (grown) scene, so refit
+	# them for the restored panel on the next frame.
+	if sidebar.get_parent() == self:
+		remove_child(sidebar)
+		vbox.add_child(sidebar)
+	dialog_expanded = false
 	call_deferred("_apply_cell_size")
 
 
@@ -1437,6 +1524,8 @@ func _refresh() -> void:
 	# own gesture, and no tap on the field is needed at all.
 	if sidebar.visible and input_block.visible:
 		text_input.grab_focus()
+	# Choice dialogs on phones grow into a full sheet (see below).
+	_update_dialog_expansion()
 
 
 func _release_text_focus() -> void:
