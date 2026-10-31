@@ -53,6 +53,7 @@ var showing_photo := false
 
 var animated_tiles: Array = []
 var small_sprites: Array = []
+var scaled_sprites: Array = []
 var anim_time := 0.0
 var arrow_icons := {}
 var scene_cols := 0
@@ -95,6 +96,10 @@ const MOVE_KEYS := {
 }
 # Pickup items render at half cell size; characters (and fire) stay full.
 const ITEM_SPRITES := ["monocle", "extinguisher", "boots", "key", "shoe", "taxofon"]
+# Per-sprite display scale in a scene cell (1.0 = full cell): zags
+# fills her canvas edge to edge, so she reads a third taller than the
+# other characters; 0.8 brings her in line with them.
+const SPRITE_SCALE := {"zags": 0.8}
 # Map character -> sprite set in assets/sprites/ (<name>_0.png, _1, _2).
 const SPRITES := {
 	"O": "toshik", "N": "nastya", "Z": "zags", "J": "jacob",
@@ -649,7 +654,11 @@ func _on_viewport_resized() -> void:
 func _update_layout_mode() -> void:
 	if sidebar == null or game_row == null or vbox == null:
 		return
-	var narrow := get_viewport_rect().size.x < NARROW_WIDTH
+	var vp := get_viewport_rect().size
+	# Phones report the viewport in device pixels, so a portrait phone
+	# is 1080+ px wide and never trips the width threshold; portrait
+	# aspect catches it regardless of pixel density.
+	var narrow := vp.x < NARROW_WIDTH or vp.y > vp.x
 	if layout_init_done and narrow == layout_narrow:
 		return
 	layout_narrow = narrow
@@ -691,6 +700,9 @@ func _apply_cell_size() -> void:
 		child.custom_minimum_size = Vector2(cell, cell)
 	for entry in small_sprites:
 		entry["node"].custom_minimum_size = Vector2(cell / 2, cell / 2)
+	for entry in scaled_sprites:
+		var s: float = entry["scale"]
+		entry["node"].custom_minimum_size = Vector2(cell * s, cell * s)
 	if fog_overlay == null:
 		return
 	# Fog overlay: one dark column per run, from the run's top fog cell
@@ -807,6 +819,7 @@ func _refresh() -> void:
 		child.queue_free()
 	animated_tiles = []
 	small_sprites = []
+	scaled_sprites = []
 	var fog_cells: Array = []
 	var tiles: Array = engine.visible_tiles()
 	scene_cols = tiles[0].size()
@@ -884,6 +897,15 @@ func _refresh() -> void:
 							wrap.add_child(sprite)
 							cell.add_child(wrap)
 							small_sprites.append({"node": sprite, "cell": cell})
+						elif sprite_name in SPRITE_SCALE:
+							# Scaled down, centered in its cell; the
+							# exact size is fixed up in _apply_cell_size.
+							var s: float = SPRITE_SCALE[sprite_name]
+							var swrap := CenterContainer.new()
+							sprite.custom_minimum_size = Vector2(FALLBACK_CELL * s, FALLBACK_CELL * s)
+							swrap.add_child(sprite)
+							cell.add_child(swrap)
+							scaled_sprites.append({"node": sprite, "scale": s})
 						else:
 							cell.add_child(sprite)
 						if frames.size() > 1:
@@ -927,6 +949,7 @@ func _refresh() -> void:
 			child.queue_free()
 		animated_tiles = []
 		small_sprites = []
+		scaled_sprites = []
 		showing_photo = true
 		photo_rect.texture = load("res://assets/" + dlg["photo"]) as Texture2D
 		photo_rect.custom_minimum_size = Vector2(max(scene_panel.size.x - 8, 0), max(scene_panel.size.y - 8, 0))
