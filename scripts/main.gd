@@ -302,10 +302,12 @@ func _build_ui() -> void:
 
 
 # --- procedural brick texture (walls) --------------------------------------
-# 256x256, two courses per cell, half-brick offset on odd rows, so the
+# 256x256, four courses per cell, half-brick offset on odd rows, so the
 # pattern tiles seamlessly across neighbouring wall cells (each cell
-# stretches the same square texture). Per-brick shade varies by a hash
-# of parity/course/index, so it never flickers between refreshes.
+# stretches the same square texture). Small bricks, thin mortar lines
+# and only a whisper of per-brick shade variation keep the wall neat
+# and even instead of chunky; the variation is a hash of
+# parity/course/index, so it never flickers between refreshes.
 var brick_textures := {}
 
 
@@ -315,10 +317,10 @@ func _brick_texture(parity: int) -> Texture2D:
 	var s := 256
 	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
 	img.fill(SCENE_BG)
-	var course_h := 128
-	var brick_w := 128
-	var gap := 6
-	for course in 2:
+	var course_h := 64
+	var brick_w := 64
+	var gap := 4
+	for course in 4:
 		var y0 := course * course_h + gap / 2
 		var y1 := (course + 1) * course_h - gap / 2
 		var offset := 0 if parity == 0 else -brick_w / 2
@@ -327,7 +329,7 @@ func _brick_texture(parity: int) -> Texture2D:
 		while x < s:
 			var x0 := x + gap / 2
 			var x1 := x + brick_w - gap / 2
-			var shade := 0.94 + 0.06 * ((parity * 7 + course * 3 + idx) % 3)
+			var shade := 0.97 + 0.03 * ((parity * 7 + course * 3 + idx) % 3)
 			var col := Color(BRICK_COLOR.r * shade, BRICK_COLOR.g * shade, BRICK_COLOR.b * shade, 1)
 			for py in range(y0, y1):
 				for px in range(max(x0, 0), min(x1, s)):
@@ -336,6 +338,50 @@ func _brick_texture(parity: int) -> Texture2D:
 			x += brick_w
 	var tex := ImageTexture.create_from_image(img)
 	brick_textures[parity] = tex
+	return tex
+
+
+# --- procedural door sprite -------------------------------------------------
+# A flat brown panel read as a placeholder, so doors get a drawn sprite
+# instead: dark frame, vertical wood planks, two recessed panels and a
+# brass knob. Same 256x256 stretched-to-cell treatment as the bricks.
+var door_texture: Texture2D = null
+
+
+func _fill_rect(img: Image, x0: int, y0: int, x1: int, y1: int, col: Color) -> void:
+	for py in range(y0, y1):
+		for px in range(x0, x1):
+			img.set_pixel(px, py, col)
+
+
+func _door_texture() -> Texture2D:
+	if door_texture != null:
+		return door_texture
+	var s := 256
+	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+	var frame := Color(0.29, 0.18, 0.10, 1)
+	var wood := Color(0.48, 0.29, 0.15, 1)
+	var wood_light := Color(0.52, 0.33, 0.18, 1)
+	var seam := Color(0.37, 0.22, 0.11, 1)
+	var panel_edge := Color(0.37, 0.22, 0.11, 1)
+	img.fill(frame)
+	_fill_rect(img, 14, 14, 242, 242, wood)
+	# Vertical planks.
+	for x in [56, 98, 140, 182]:
+		_fill_rect(img, x, 14, x + 2, 242, seam)
+	# Two recessed panels with a lighter face.
+	for py0 in [30, 138]:
+		_fill_rect(img, 34, py0, 222, py0 + 84, panel_edge)
+		_fill_rect(img, 38, py0 + 4, 218, py0 + 80, wood_light)
+	# Brass knob.
+	var kx := 206
+	var ky := 128
+	for py in range(ky - 10, ky + 11):
+		for px in range(kx - 10, kx + 11):
+			if (px - kx) * (px - kx) + (py - ky) * (py - ky) <= 100:
+				img.set_pixel(px, py, Color(0.85, 0.70, 0.36, 1))
+	var tex := ImageTexture.create_from_image(img)
+	door_texture = tex
 	return tex
 
 
@@ -569,7 +615,8 @@ func _cell_style(emoji: String, is_player: bool, up_same: bool, down_same: bool,
 	if emoji == "🕳":
 		return _merged_style(ROAD_COLOR, up_same, down_same, left_same, right_same)
 	if emoji == "🚪":
-		return _panel_style(DOOR_COLOR, DOOR_BORDER, 8)
+		# Flat frame colour behind the door texture child.
+		return _panel_style(DOOR_BORDER, Color(0, 0, 0, 0), 0)
 	if emoji == "✖️":
 		return _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 10)
 	# Everything else (floor, hero, characters, items) sits directly on
@@ -637,7 +684,14 @@ func _refresh() -> void:
 				brick.stretch_mode = TextureRect.STRETCH_SCALE
 				cell.add_child(brick)
 				continue
-			if not is_player and emoji in ["🕳", "▫️", "🚪", "✖️"]:
+			if not is_player and emoji == "🚪":
+				var door := TextureRect.new()
+				door.texture = _door_texture()
+				door.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				door.stretch_mode = TextureRect.STRETCH_SCALE
+				cell.add_child(door)
+				continue
+			if not is_player and emoji in ["🕳", "▫️", "✖️"]:
 				continue
 			if is_player:
 				var frames := _sprite_frames(SPRITES.get(dlg_hero, "toshik"))
