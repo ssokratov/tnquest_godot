@@ -8,9 +8,9 @@ extends Control
 ## scene instead. The scene tiles scale to fill the scene panel, so the
 ## sprites stay large on wide windows instead of sitting tiny in the
 ## middle of an empty panel.
-## Dialog photos are NOT a separate element below the text: they open as a
-## modal card over the scene (dimmed background, image + text + answers
-## inside the card), so the photo intercepts control until you answer.
+## Dialog photos replace the whole scene: the photo is shown where the
+## tile map was, and the dialog with answers stays in the sidebar
+## exactly like any other dialog. No modal, no overlay, no dim.
 ##
 ## No emoji anywhere in the UI chrome: the web export has no system
 ## font fallback, so emoji render as tofu boxes there (desktop builds
@@ -48,10 +48,8 @@ var feedback_label: Label
 var answers_box: VBoxContainer
 var dpad_block: VBoxContainer
 var dpad_buttons := {}
-var modal: Control
-var modal_image: TextureRect
-var modal_text: RichTextLabel
-var modal_answers: VBoxContainer
+var photo_rect: TextureRect
+var showing_photo := false
 
 var animated_tiles: Array = []
 var small_sprites: Array = []
@@ -162,7 +160,7 @@ func _button_style(bg: Color) -> StyleBoxFlat:
 
 func _style_button(button: Button) -> void:
 	# One wood-and-gold button style for every button in the game:
-	# answers, modal answers, inventory/journal, D-pad, reset, submit.
+	# answers, inventory/journal, D-pad, reset, submit.
 	button.add_theme_stylebox_override("normal", _button_style(BUTTON_BG))
 	button.add_theme_stylebox_override("hover", _button_style(BUTTON_HOVER))
 	button.add_theme_stylebox_override("pressed", _button_style(BUTTON_PRESSED))
@@ -184,7 +182,7 @@ func _try_font(path: String) -> FontFile:
 func _parchment_style() -> StyleBoxTexture:
 	# 256x256 ivory parchment with a double gold border and small gold
 	# corner flourishes, used as a 9-slice stylebox so the corners never
-	# distort however large the dialog or modal card grows.
+	# distort however large the dialog card grows.
 	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
 	img.fill(PARCHMENT)
 	for x in range(256):
@@ -304,8 +302,16 @@ func _build_ui() -> void:
 	fog_overlay.mouse_filter = MOUSE_FILTER_IGNORE
 	fog_overlay.visible = false
 	scene_center.add_child(fog_overlay)
+	# Photo view: one persistent TextureRect, shown instead of the tile
+	# map for photo dialogs. Centred like the grid, sized just inside
+	# the gold scene frame (see _refresh and _apply_cell_size).
+	photo_rect = TextureRect.new()
+	photo_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	photo_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	photo_rect.visible = false
+	scene_center.add_child(photo_rect)
 
-	# Sidebar (hidden while a photo modal is open): dialog, answers,
+	# Sidebar: dialog, answers,
 	# inventory/journal buttons, D-pad, hint — all scrollable.
 	sidebar = PanelContainer.new()
 	sidebar.add_theme_stylebox_override("panel", _panel_style(SIDEBAR_BG, GOLD))
@@ -443,10 +449,8 @@ func _build_ui() -> void:
 
 
 
-	_build_modal()
-
 	# Serif fonts (Noto Serif Display for the hero title, Noto Serif
-	# for dialog/modal text — both with full Cyrillic) activate
+	# for dialog text — both with full Cyrillic) activate
 	# automatically once the TTFs are in res://assets/fonts/.
 	var display_font := _try_font("res://assets/fonts/NotoSerifDisplay-Bold.ttf")
 	if display_font != null:
@@ -457,16 +461,12 @@ func _build_ui() -> void:
 	var body_bi := _try_font("res://assets/fonts/NotoSerif-BoldItalic.ttf")
 	if body_font != null:
 		dialog_label.add_theme_font_override("normal_font", body_font)
-		modal_text.add_theme_font_override("normal_font", body_font)
 	if body_bold != null:
 		dialog_label.add_theme_font_override("bold_font", body_bold)
-		modal_text.add_theme_font_override("bold_font", body_bold)
 	if body_italic != null:
 		dialog_label.add_theme_font_override("italics_font", body_italic)
-		modal_text.add_theme_font_override("italics_font", body_italic)
 	if body_bi != null:
 		dialog_label.add_theme_font_override("bold_italics_font", body_bi)
-		modal_text.add_theme_font_override("bold_italics_font", body_bi)
 
 	get_viewport().size_changed.connect(_on_viewport_resized)
 	call_deferred("_update_layout_mode")
@@ -623,10 +623,6 @@ func _refresh_fonts() -> void:
 	dialog_label.add_theme_font_size_override("bold_font_size", _scaled(22))
 	dialog_label.add_theme_font_size_override("italics_font_size", _scaled(22))
 	dialog_label.add_theme_font_size_override("bold_italics_font_size", _scaled(22))
-	modal_text.add_theme_font_size_override("normal_font_size", _scaled(22))
-	modal_text.add_theme_font_size_override("bold_font_size", _scaled(22))
-	modal_text.add_theme_font_size_override("italics_font_size", _scaled(22))
-	modal_text.add_theme_font_size_override("bold_italics_font_size", _scaled(22))
 	text_input.add_theme_font_size_override("font_size", _scaled(20))
 	submit_button.add_theme_font_size_override("font_size", _scaled(20))
 	feedback_label.add_theme_font_size_override("font_size", _scaled(16))
@@ -704,7 +700,9 @@ func _apply_cell_size() -> void:
 	for child in fog_overlay.get_children():
 		fog_overlay.remove_child(child)
 		child.free()
-	fog_overlay.visible = not fog_runs.is_empty()
+	fog_overlay.visible = not fog_runs.is_empty() and not showing_photo
+	if photo_rect != null and showing_photo:
+		photo_rect.custom_minimum_size = Vector2(max(scene_panel.size.x - 8, 0), max(scene_panel.size.y - 8, 0))
 	if fog_runs.is_empty():
 		return
 	var grid_h := scene_rows * cell
@@ -732,59 +730,6 @@ func _set_fit_content(label: RichTextLabel) -> void:
 		label.set("fit_content", true)
 	else:
 		label.custom_minimum_size = Vector2(0, 140)
-
-
-func _build_modal() -> void:
-	modal = Control.new()
-	modal.set_anchors_preset(PRESET_FULL_RECT)
-	modal.mouse_filter = MOUSE_FILTER_STOP
-	modal.visible = false
-	add_child(modal)
-	var dim := ColorRect.new()
-	dim.set_anchors_preset(PRESET_FULL_RECT)
-	dim.color = Color(0, 0, 0, 0.68)
-	modal.add_child(dim)
-	# The card fills almost the whole window (28 px margins): the photo
-	# then takes every pixel the text and answers leave it.
-	var modal_margin := MarginContainer.new()
-	modal_margin.set_anchors_preset(PRESET_FULL_RECT)
-	modal_margin.add_theme_constant_override("margin_left", 28)
-	modal_margin.add_theme_constant_override("margin_right", 28)
-	modal_margin.add_theme_constant_override("margin_top", 28)
-	modal_margin.add_theme_constant_override("margin_bottom", 28)
-	modal.add_child(modal_margin)
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", _parchment_style())
-	modal_margin.add_child(card)
-	var card_margin := MarginContainer.new()
-	card_margin.add_theme_constant_override("margin_left", 16)
-	card_margin.add_theme_constant_override("margin_right", 16)
-	card_margin.add_theme_constant_override("margin_top", 14)
-	card_margin.add_theme_constant_override("margin_bottom", 14)
-	card.add_child(card_margin)
-	var card_box := VBoxContainer.new()
-	card_box.add_theme_constant_override("separation", 12)
-	card_margin.add_child(card_box)
-	modal_image = TextureRect.new()
-	modal_image.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	modal_image.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	modal_image.size_flags_horizontal = SIZE_EXPAND_FILL
-	modal_image.size_flags_vertical = SIZE_EXPAND_FILL
-	modal_image.custom_minimum_size = Vector2(0, 200)
-	card_box.add_child(modal_image)
-	modal_text = RichTextLabel.new()
-	modal_text.bbcode_enabled = true
-	modal_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_set_fit_content(modal_text)
-	modal_text.add_theme_font_size_override("normal_font_size", 22)
-	modal_text.add_theme_font_size_override("bold_font_size", 22)
-	modal_text.add_theme_font_size_override("italics_font_size", 22)
-	modal_text.add_theme_font_size_override("bold_italics_font_size", 22)
-	modal_text.add_theme_color_override("default_color", PARCHMENT_TEXT)
-	card_box.add_child(modal_text)
-	modal_answers = VBoxContainer.new()
-	modal_answers.add_theme_constant_override("separation", 8)
-	card_box.add_child(modal_answers)
 
 
 # --- refresh ------------------------------------------------------------------
@@ -969,64 +914,59 @@ func _refresh() -> void:
 
 	_apply_cell_size()
 
-	# Sidebar vs photo modal.
+	# No modal at all: a photo dialog replaces the whole scene with the
+	# photo, and the dialog and answers stay in the sidebar exactly
+	# like any other dialog. This also fixes photo dialogs with hidden
+	# answers (Demianov3): the modal never showed the free-text field,
+	# so its riddle could only be skipped, never answered by typing.
+	sidebar.visible = true
 	if has_photo:
-		sidebar.visible = false
-		# No size cap here any more: the TextureRect expands to fill the
-		# card (minus text and answers) and scales the photo up or down
-		# to fit, keeping its aspect ratio.
-		modal_image.texture = load("res://assets/" + dlg["photo"]) as Texture2D
-		modal_text.text = message
-		for child in modal_answers.get_children():
+		for child in scene_grid.get_children():
 			child.queue_free()
-		for answer in answers:
+		animated_tiles = []
+		small_sprites = []
+		showing_photo = true
+		photo_rect.texture = load("res://assets/" + dlg["photo"]) as Texture2D
+		photo_rect.custom_minimum_size = Vector2(max(scene_panel.size.x - 8, 0), max(scene_panel.size.y - 8, 0))
+		photo_rect.visible = true
+		fog_overlay.visible = false
+	else:
+		showing_photo = false
+		photo_rect.visible = false
+	dialog_label.text = message
+	input_block.visible = not engine.hidden_answers().is_empty()
+	feedback_label.text = ""
+	text_input.text = ""
+	for child in answers_box.get_children():
+		child.queue_free()
+	var has_move := false
+	for answer in answers:
+		if answer["message"] in MOVE_CODES:
+			has_move = true
+		else:
 			var button := Button.new()
 			button.text = _answer_label(answer["message"])
 			button.focus_mode = FOCUS_NONE
 			button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+			# Buttons do NOT wrap by default: a long answer's
+			# minimum width (782 px measured for one) widened the
+			# whole sidebar and shrank the scene. Wrapping pins
+			# the sidebar at 380 px; only a window resize reflows.
 			button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			button.add_theme_font_size_override("font_size", _scaled(21))
+			button.add_theme_font_size_override("font_size", _scaled(20))
 			_style_button(button)
 			button.pressed.connect(_on_answer.bind(answer))
-			modal_answers.add_child(button)
-		modal.visible = true
-	else:
-		modal.visible = false
-		sidebar.visible = true
-		dialog_label.text = message
-		input_block.visible = not engine.hidden_answers().is_empty()
-		feedback_label.text = ""
-		text_input.text = ""
-		for child in answers_box.get_children():
-			child.queue_free()
-		var has_move := false
+			answers_box.add_child(button)
+	dpad_block.visible = has_move
+	for code in dpad_buttons:
+		var found := false
 		for answer in answers:
-			if answer["message"] in MOVE_CODES:
-				has_move = true
-			else:
-				var button := Button.new()
-				button.text = _answer_label(answer["message"])
-				button.focus_mode = FOCUS_NONE
-				button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-				# Buttons do NOT wrap by default: a long answer's
-				# minimum width (782 px measured for one) widened the
-				# whole sidebar and shrank the scene. Wrapping pins
-				# the sidebar at 380 px; only a window resize reflows.
-				button.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-				button.add_theme_font_size_override("font_size", _scaled(20))
-				_style_button(button)
-				button.pressed.connect(_on_answer.bind(answer))
-				answers_box.add_child(button)
-		dpad_block.visible = has_move
-		for code in dpad_buttons:
-			var found := false
-			for answer in answers:
-				if answer["message"] == code:
-					found = true
-					break
-			var button: Button = dpad_buttons[code]
-			button.disabled = not found
-			button.modulate = Color(1, 1, 1, 1) if found else Color(1, 1, 1, 0.35)
+			if answer["message"] == code:
+				found = true
+				break
+		var button: Button = dpad_buttons[code]
+		button.disabled = not found
+		button.modulate = Color(1, 1, 1, 1) if found else Color(1, 1, 1, 0.35)
 	_release_text_focus()
 
 
