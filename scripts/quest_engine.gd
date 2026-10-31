@@ -316,4 +316,6 @@ func _quest_line(quest: String, text: String) -> String:
 	if quest not in journal_all:
 		return ""
 	var mark := "✔️" if quest in journal_finished else "✖️"
-	return mark + " " + text + "\n"
+	# The bullet survives the Web emoji strip (which removes the marks),
+	# so the journal still reads as a list there.
+	return "• " + mark + " " + text + "\n"

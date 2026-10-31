@@ -59,6 +59,14 @@ var layout_init_done := false
 
 const FALLBACK_CELL := 64
 const MIN_CELL := 40
+# Light scene palette (the user picked a light scene so the remaining
+# white sprite fringe blends in instead of glowing on dark tiles).
+# The floor is the scene panel's own background, not a tile at all.
+const SCENE_BG := Color(0.91, 0.89, 0.83)
+const ROAD_COLOR := Color(0.78, 0.73, 0.62)
+const DOOR_COLOR := Color(0.42, 0.29, 0.17)
+const DOOR_BORDER := Color(0.26, 0.17, 0.09)
+const BRICK_COLOR := Color(0.62, 0.36, 0.24)
 const NARROW_WIDTH := 760
 const SIDEBAR_WIDTH := 380
 const MOVE_CODES := ["t", "d", "l", "r", "i", "j"]
@@ -158,7 +166,7 @@ func _build_ui() -> void:
 	scene_panel = PanelContainer.new()
 	scene_panel.size_flags_horizontal = SIZE_EXPAND_FILL
 	scene_panel.size_flags_vertical = SIZE_EXPAND_FILL
-	scene_panel.add_theme_stylebox_override("panel", _panel_style(Color(0.11, 0.11, 0.16), Color(0.25, 0.25, 0.35)))
+	scene_panel.add_theme_stylebox_override("panel", _panel_style(SCENE_BG, Color(0.72, 0.67, 0.57)))
 	game_row.add_child(scene_panel)
 	var scene_center := CenterContainer.new()
 	scene_panel.add_child(scene_center)
@@ -195,7 +203,13 @@ func _build_ui() -> void:
 	dialog_label = RichTextLabel.new()
 	dialog_label.bbcode_enabled = true
 	_set_fit_content(dialog_label)
+	# RichTextLabel keeps a separate size per run style: overriding
+	# only normal_font_size left bold/italic runs at the default 16,
+	# which is why marked-up words rendered oddly small on Web.
 	dialog_label.add_theme_font_size_override("normal_font_size", 22)
+	dialog_label.add_theme_font_size_override("bold_font_size", 22)
+	dialog_label.add_theme_font_size_override("italics_font_size", 22)
+	dialog_label.add_theme_font_size_override("bold_italics_font_size", 22)
 	dialog_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	sidebar_box.add_child(dialog_label)
 
@@ -284,6 +298,44 @@ func _build_ui() -> void:
 	call_deferred("_refresh_fonts")
 
 
+# --- procedural brick texture (walls) --------------------------------------
+# 256x256, two courses per cell, half-brick offset on odd rows, so the
+# pattern tiles seamlessly across neighbouring wall cells (each cell
+# stretches the same square texture). Per-brick shade varies by a hash
+# of parity/course/index, so it never flickers between refreshes.
+var brick_textures := {}
+
+
+func _brick_texture(parity: int) -> Texture2D:
+	if parity in brick_textures:
+		return brick_textures[parity]
+	var s := 256
+	var img := Image.create(s, s, false, Image.FORMAT_RGBA8)
+	img.fill(SCENE_BG)
+	var course_h := 128
+	var brick_w := 128
+	var gap := 6
+	for course in 2:
+		var y0 := course * course_h + gap / 2
+		var y1 := (course + 1) * course_h - gap / 2
+		var offset := 0 if parity == 0 else -brick_w / 2
+		var idx := 0
+		var x := offset
+		while x < s:
+			var x0 := x + gap / 2
+			var x1 := x + brick_w - gap / 2
+			var shade := 0.94 + 0.06 * ((parity * 7 + course * 3 + idx) % 3)
+			var col := Color(BRICK_COLOR.r * shade, BRICK_COLOR.g * shade, BRICK_COLOR.b * shade, 1)
+			for py in range(y0, y1):
+				for px in range(max(x0, 0), min(x1, s)):
+					img.set_pixel(px, py, col)
+			idx += 1
+			x += brick_w
+	var tex := ImageTexture.create_from_image(img)
+	brick_textures[parity] = tex
+	return tex
+
+
 # --- procedural arrow icons (font-independent, so Web never shows tofu) ---
 
 func _in_triangle(px: float, py: float, ax: float, ay: float, bx: float, by: float, cx: float, cy: float) -> bool:
@@ -343,7 +395,13 @@ func _refresh_fonts() -> void:
 	hero_label.add_theme_font_size_override("font_size", _scaled(24))
 	reset_button.add_theme_font_size_override("font_size", _scaled(20))
 	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(22))
+	dialog_label.add_theme_font_size_override("bold_font_size", _scaled(22))
+	dialog_label.add_theme_font_size_override("italics_font_size", _scaled(22))
+	dialog_label.add_theme_font_size_override("bold_italics_font_size", _scaled(22))
 	modal_text.add_theme_font_size_override("normal_font_size", _scaled(22))
+	modal_text.add_theme_font_size_override("bold_font_size", _scaled(22))
+	modal_text.add_theme_font_size_override("italics_font_size", _scaled(22))
+	modal_text.add_theme_font_size_override("bold_italics_font_size", _scaled(22))
 	text_input.add_theme_font_size_override("font_size", _scaled(20))
 	submit_button.add_theme_font_size_override("font_size", _scaled(20))
 	feedback_label.add_theme_font_size_override("font_size", _scaled(16))
@@ -467,6 +525,9 @@ func _build_modal() -> void:
 	modal_text.bbcode_enabled = true
 	_set_fit_content(modal_text)
 	modal_text.add_theme_font_size_override("normal_font_size", 22)
+	modal_text.add_theme_font_size_override("bold_font_size", 22)
+	modal_text.add_theme_font_size_override("italics_font_size", 22)
+	modal_text.add_theme_font_size_override("bold_italics_font_size", 22)
 	card_box.add_child(modal_text)
 	modal_answers = VBoxContainer.new()
 	modal_answers.add_theme_constant_override("separation", 8)
@@ -496,11 +557,14 @@ func _cell_style(emoji: String, is_player: bool, up_same: bool, down_same: bool,
 	# emoji glyph is ever drawn as text: doors and marks are coloured
 	# panels, so the web build cannot show tofu for them.
 	if emoji == "⬛️":
-		return _merged_style(Color(0.29, 0.29, 0.4), up_same, down_same, left_same, right_same)
+		# Flat mortar background; the brick texture child (added in
+		# _refresh) covers it. Square corners: bricks are square, and
+		# the texture tiles seamlessly across cells as it is.
+		return _panel_style(SCENE_BG, Color(0, 0, 0, 0), 0)
 	if emoji == "🕳":
-		return _merged_style(Color(0.24, 0.24, 0.33), up_same, down_same, left_same, right_same)
+		return _merged_style(ROAD_COLOR, up_same, down_same, left_same, right_same)
 	if emoji == "🚪":
-		return _panel_style(Color(0.45, 0.32, 0.2), Color(0.28, 0.19, 0.11), 8)
+		return _panel_style(DOOR_COLOR, DOOR_BORDER, 8)
 	if emoji == "✖️":
 		return _panel_style(Color(0.2, 0.17, 0.26), Color(0, 0, 0, 0), 10)
 	# Everything else (floor, hero, characters, items) sits directly on
@@ -556,10 +620,18 @@ func _refresh() -> void:
 				same.call(x, y - 1), same.call(x, y + 1),
 				same.call(x - 1, y), same.call(x + 1, y)))
 			scene_grid.add_child(cell)
-			# Walls, roads, bare floor, doors and marks are pure
-			# background shapes: nothing is drawn inside them (their
-			# emoji are never rendered as text, so no tofu on Web).
-			if not is_player and emoji in ["⬛️", "🕳", "▫️", "🚪", "✖️"]:
+			# Walls get a brick texture child (row parity alternates
+			# the course offset); roads, bare floor, doors and marks
+			# are pure background shapes: nothing is drawn inside them
+			# (their emoji are never rendered as text, so no tofu).
+			if not is_player and emoji == "⬛️":
+				var brick := TextureRect.new()
+				brick.texture = _brick_texture(y % 2)
+				brick.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+				brick.stretch_mode = TextureRect.STRETCH_SCALE
+				cell.add_child(brick)
+				continue
+			if not is_player and emoji in ["🕳", "▫️", "🚪", "✖️"]:
 				continue
 			if is_player:
 				var frames := _sprite_frames(SPRITES.get(dlg_hero, "toshik"))
