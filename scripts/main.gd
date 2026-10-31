@@ -75,7 +75,7 @@ const MIN_CELL := 40
 # white sprite fringe blends in instead of glowing on dark tiles).
 # The floor is the scene panel's own background, not a tile at all.
 const SCENE_BG := Color(0.91, 0.89, 0.83)
-const ROAD_COLOR := Color(0.78, 0.73, 0.62)
+const ROAD_COLOR := Color(0.14, 0.14, 0.15)
 const DOOR_COLOR := Color(0.42, 0.29, 0.17)
 const BRICK_COLOR := Color(0.62, 0.36, 0.24)
 # Wedding-invitation palette (user-approved restyle): deep plum-brown
@@ -221,19 +221,22 @@ func _button_min_height() -> int:
 
 func _dialog_button_min_height() -> int:
 	# Dialog-area buttons (answers, inventory/journal, submit) are
-	# taller than the header buttons on narrow windows, where the
-	# user reads them as the main controls. Desktops keep 56.
+	# much taller than the header buttons on narrow windows, where
+	# the user reads them as the main controls: 132 px is close to
+	# double the old 76, for reliable tapping. Desktops keep 56.
 	if get_viewport_rect().size.x < NARROW_WIDTH:
-		return 76
+		return 132
 	return 56
 
 
 func _dpad_button_size() -> int:
-	# Arrow buttons are square; bigger on narrow windows (their
-	# icons scale via expand_icon). Wide keeps 52 wide; the height
-	# there stays the 56 floor from _button_min_height().
+	# Arrow buttons are square; much bigger on narrow windows (their
+	# icons scale via expand_icon): 112 px is close to double the
+	# old 64, and a 3x112 pad still fits a narrow scene panel.
+	# Wide keeps 52 wide; the height there stays the 56 floor
+	# from _button_min_height().
 	if get_viewport_rect().size.x < NARROW_WIDTH:
-		return 64
+		return 112
 	return 52
 
 
@@ -702,6 +705,45 @@ func _brick_texture() -> Texture2D:
 	return tex
 
 
+# --- procedural road texture ------------------------------------------------
+# Black asphalt with white edge lines and a dashed centre line, drawn
+# for one square cell. Adjacent cells' centred dashes (50% of the
+# cell) join into a regular dashed line, so a strip of road cells
+# reads as one road. One cached texture per direction.
+var road_tex_h: Texture2D = null
+var road_tex_v: Texture2D = null
+
+
+func _road_texture(horizontal: bool) -> Texture2D:
+	if horizontal and road_tex_h != null:
+		return road_tex_h
+	if not horizontal and road_tex_v != null:
+		return road_tex_v
+	var img := Image.create(256, 256, false, Image.FORMAT_RGBA8)
+	img.fill(ROAD_COLOR)
+	# Asphalt grain: a sparse speckle, slightly lighter/darker.
+	for i in range(1800):
+		var px := randi() % 256
+		var py := randi() % 256
+		var v := 0.14 + (randf() - 0.5) * 0.05
+		img.set_pixel(px, py, Color(v, v, v + 0.01))
+	var white := Color(0.92, 0.92, 0.90)
+	if horizontal:
+		_fill_rect(img, 0, 16, 256, 24, white)
+		_fill_rect(img, 0, 232, 256, 240, white)
+		_fill_rect(img, 64, 123, 192, 133, white)
+	else:
+		_fill_rect(img, 16, 0, 24, 256, white)
+		_fill_rect(img, 232, 0, 240, 256, white)
+		_fill_rect(img, 123, 64, 133, 192, white)
+	var tex := ImageTexture.create_from_image(img)
+	if horizontal:
+		road_tex_h = tex
+	else:
+		road_tex_v = tex
+	return tex
+
+
 # --- procedural door sprite -------------------------------------------------
 # A flat brown panel read as a placeholder, so doors get a drawn sprite
 # instead: dark frame, vertical wood planks, two recessed panels and a
@@ -850,7 +892,7 @@ func _refresh_fonts() -> void:
 		if code in ["i", "j"]:
 			_set_button_height(db, dbh)
 		else:
-			db.custom_minimum_size = Vector2(ds, bh)
+			db.custom_minimum_size = Vector2(ds, max(ds, bh))
 	if dpad_pad != null:
 		for child in dpad_pad.get_children():
 			if not (child is Button):
@@ -962,12 +1004,12 @@ func _apply_cell_size() -> void:
 	for entry in small_sprites:
 		entry["node"].custom_minimum_size = Vector2(cell / 2, cell / 2)
 	for entry in card_sprites:
-		# Photo card: 0.8 x 0.66 of a cell (matches the shoe's own
-		# aspect), rotated -0.1 rad; the rotated bounding box
-		# (0.86 x 0.74) still fits its cell. The shoe sits inside
-		# with a small ivory margin, like a picture on the card.
-		var cw := cell * 0.8
-		var ch := cell * 0.66
+		# Photo card: 0.62 x 0.51 of a cell (matches the shoe's own
+		# aspect), rotated -0.18 rad, like the mockup; the rotated
+		# bounding box (0.70 x 0.61) still fits its cell. The shoe
+		# sits inside with a small ivory margin, like a picture.
+		var cw := cell * 0.62
+		var ch := cell * 0.51
 		var m := cell * 0.06
 		var card: Control = entry["card"]
 		card.custom_minimum_size = Vector2(cw, ch)
@@ -1057,7 +1099,11 @@ func _cell_style(emoji: String, is_player: bool, up_same: bool, down_same: bool,
 		# the texture tiles seamlessly across cells as it is.
 		return _panel_style(SCENE_BG, Color(0, 0, 0, 0), 0)
 	if emoji == "🕳":
-		return _merged_style(ROAD_COLOR, up_same, down_same, left_same, right_same)
+		# Square asphalt panel; the markings texture child (added
+		# in _refresh) draws the road on top of it. The old merged
+		# rounded tan path is gone: a road reads as one continuous
+		# strip, like the brick walls read as one wall.
+		return _panel_style(ROAD_COLOR, Color(0, 0, 0, 0), 0)
 	if emoji == "🚪":
 		# Transparent: the narrow door's sides must show the scene
 		# floor, not a brown frame — the brown side strips read as a
@@ -1153,6 +1199,21 @@ func _refresh() -> void:
 				brick.stretch_mode = TextureRect.STRETCH_SCALE
 				cell.add_child(brick)
 				continue
+			if not is_player and emoji == "🕳":
+				# The road (Nastya's final road, rows 21-22, is the
+				# only '=' strip on the map): black asphalt with
+				# white markings, running along the road's direction
+				# from the full map, like doors. Isolated cells stay
+				# plain asphalt (panel only, no texture).
+				var horiz: bool = same.call(x - 1, y) or same.call(x + 1, y)
+				var vert: bool = same.call(x, y - 1) or same.call(x, y + 1)
+				if horiz or vert:
+					var road := TextureRect.new()
+					road.texture = _road_texture(horiz)
+					road.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+					road.stretch_mode = TextureRect.STRETCH_SCALE
+					cell.add_child(road)
+				continue
 			if not is_player and emoji == "🚪":
 				# A door in a horizontal wall (wall cells left and
 				# right) gets the brick texture underneath, so the
@@ -1221,7 +1282,7 @@ func _refresh() -> void:
 							# up in _apply_cell_size like other sprites.
 							var cwrap := CenterContainer.new()
 							var card := Control.new()
-							card.rotation = -0.1
+							card.rotation = -0.18
 							var shadow := ColorRect.new()
 							shadow.color = Color(0, 0, 0, 0.25)
 							card.add_child(shadow)
