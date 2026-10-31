@@ -221,10 +221,26 @@ func _move_to(target: Vector2i) -> void:
 	var ch := _cell(target)
 	var by_icon := _map_icon_dialogs()
 	if ch in by_icon:
-		open_dialog = by_icon[ch]
+		# Only open a cell dialog the player can actually do something
+		# in: a dialog with no available answer and no hidden answer
+		# would strand them (no movement, no exit). This matters for
+		# the taxofon: Taxofon1's answers all need OrderTaxi open or
+		# the phone number, so stepping on the booth early leaves the
+		# map alone instead of softlocking.
+		var candidate: Dictionary = data["dialogs"][by_icon[ch]]
+		if _dialog_has_actions(candidate):
+			open_dialog = by_icon[ch]
 	var dlg := current_dialog()
 	if not dlg.get("prevent_move", false):
 		pos = target
+
+
+func _dialog_has_actions(dlg: Dictionary) -> bool:
+	for a in dlg.get("answers", []):
+		if "available" in a and not _eval_cond(a["available"]):
+			continue
+		return true
+	return false
 
 
 func _apply_map_op(op: Dictionary) -> void:
@@ -234,6 +250,17 @@ func _apply_map_op(op: Dictionary) -> void:
 		"replace_first":
 			var cell := _find_first(op["icon"], map_rows)
 			_set_cell(cell, op["char"])
+		"replace":
+			# The original's Map.Replace(icon, char) rewrites EVERY
+			# cell with that icon (the 3 flames, the 3-cell crowds);
+			# the transpiler wrote these as replace_first, which only
+			# cleared one cell. The row snapshot keeps the original
+			# chars for the check while _set_cell accumulates edits.
+			for y in map_rows.size():
+				var row: String = map_rows[y]
+				for x in row.length():
+					if row[x] == op["icon"]:
+						_set_cell(Vector2i(x, y), op["char"])
 		"replace_at":
 			_set_cell(_eval_pos(op["at"]), op["char"])
 

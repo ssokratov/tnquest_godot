@@ -1441,7 +1441,7 @@
      "change_map": {
       "map_ops": [
        {
-        "op": "replace_first",
+        "op": "replace",
         "icon": "U",
         "char": "-"
        }
@@ -1711,7 +1711,7 @@
      "change_map": {
       "map_ops": [
        {
-        "op": "replace_first",
+        "op": "replace",
         "icon": "F",
         "char": "-"
        }
@@ -2554,7 +2554,7 @@
      "change_map": {
       "map_ops": [
        {
-        "op": "replace_first",
+        "op": "replace",
         "icon": "c",
         "char": "-"
        }
@@ -2591,7 +2591,7 @@
      "change_map": {
       "map_ops": [
        {
-        "op": "replace_first",
+        "op": "replace",
         "icon": "C",
         "char": "-"
        }
@@ -2630,7 +2630,7 @@
      "change_map": {
       "map_ops": [
        {
-        "op": "replace_first",
+        "op": "replace",
         "icon": "T",
         "char": "-"
        },
@@ -3197,6 +3197,7 @@
   },
   "Taxofon1": {
    "name": "Taxofon1",
+   "map_icon": "z",
    "story": "nastya",
    "message": "_Таксофон:_ Здравствуйте! Спасибо, что позвонили в нашу таксомоторную компанию! Ваш звонок очень важен для нас. Оставайтесь на линии, первый освободившийся оператор примет ваш звонок. Примерное время ожидания 28 минут.",
    "answers": [
