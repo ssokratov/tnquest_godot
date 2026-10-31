@@ -32,6 +32,7 @@ var engine := QuestEngineScript.new()
 var vbox: VBoxContainer
 var game_row: HBoxContainer
 var hero_label: Label
+var reset_button: Button
 var scene_panel: PanelContainer
 var scene_grid: GridContainer
 var sidebar: PanelContainer
@@ -43,7 +44,6 @@ var feedback_label: Label
 var answers_box: VBoxContainer
 var dpad_block: VBoxContainer
 var dpad_buttons := {}
-var hint_label: Label
 var modal: Control
 var modal_image: TextureRect
 var modal_text: RichTextLabel
@@ -139,11 +139,12 @@ func _build_ui() -> void:
 	hero_label.size_flags_horizontal = SIZE_EXPAND_FILL
 	hero_label.add_theme_font_size_override("font_size", 24)
 	header.add_child(hero_label)
-	var reset := Button.new()
-	reset.text = "Начать заново"
-	reset.focus_mode = FOCUS_NONE
-	reset.pressed.connect(_on_reset)
-	header.add_child(reset)
+	reset_button = Button.new()
+	reset_button.text = "Начать заново"
+	reset_button.focus_mode = FOCUS_NONE
+	reset_button.add_theme_font_size_override("font_size", 20)
+	reset_button.pressed.connect(_on_reset)
+	header.add_child(reset_button)
 	vbox.add_child(header)
 
 	# Game row: scene on the left, sidebar on the right (wide windows).
@@ -274,12 +275,7 @@ func _build_ui() -> void:
 			dpad.add_child(button)
 			dpad_buttons[code] = button
 
-	hint_label = Label.new()
-	hint_label.text = "Стрелки / WASD или кнопки — движение, когда оно предлагается. Прогресс сохраняется автоматически."
-	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	hint_label.add_theme_font_size_override("font_size", 15)
-	hint_label.size_flags_horizontal = SIZE_EXPAND_FILL
-	sidebar_box.add_child(hint_label)
+
 
 	_build_modal()
 	get_viewport().size_changed.connect(_on_viewport_resized)
@@ -345,9 +341,9 @@ func _refresh_fonts() -> void:
 	if hero_label == null:
 		return
 	hero_label.add_theme_font_size_override("font_size", _scaled(24))
+	reset_button.add_theme_font_size_override("font_size", _scaled(20))
 	dialog_label.add_theme_font_size_override("normal_font_size", _scaled(22))
 	modal_text.add_theme_font_size_override("normal_font_size", _scaled(22))
-	hint_label.add_theme_font_size_override("font_size", _scaled(15))
 	text_input.add_theme_font_size_override("font_size", _scaled(20))
 	submit_button.add_theme_font_size_override("font_size", _scaled(20))
 	feedback_label.add_theme_font_size_override("font_size", _scaled(16))
