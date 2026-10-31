@@ -25,15 +25,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download Godot 4.7.2 and export templates
+      # The full templates archive is 1.28 GB, but the web export only
+      # needs the web*.zip files (~90 MB), so cache just those: the first
+      # run downloads once, later runs restore the cache in seconds.
+      # Committing templates to the repo instead would bloat every clone
+      # (2 GB extracted) and trip GitHub's 100 MB file limit.
+      - name: Cache web export templates
+        id: templates-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/godot/export_templates/4.7.2.stable
+          key: godot-templates-4.7.2-stable-web
+
+      - name: Download Godot 4.7.2
         run: |
-          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
           curl -sL -o godot.zip https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_linux.x86_64.zip
           unzip -q godot.zip
           chmod +x Godot_v4.7.2-stable_linux.x86_64
+
+      - name: Download web export templates
+        if: steps.templates-cache.outputs.cache-hit != 'true'
+        run: |
+          mkdir -p "$HOME/.local/share/godot/export_templates/4.7.2.stable"
           curl -sL -o templates.tpz https://github.com/godotengine/godot/releases/download/4.7.2-stable/Godot_v4.7.2-stable_export_templates.tpz
           unzip -q templates.tpz -d /tmp/godot-templates
-          cp -r /tmp/godot-templates/templates/* "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
+          cp /tmp/godot-templates/templates/web*.zip /tmp/godot-templates/templates/version.txt "$HOME/.local/share/godot/export_templates/4.7.2.stable/"
 
       - name: Export web build
         # Godot does not create the output directory itself.
